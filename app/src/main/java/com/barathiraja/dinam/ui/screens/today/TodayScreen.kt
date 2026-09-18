@@ -13,11 +13,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.barathiraja.dinam.data.model.TodoItem
@@ -36,8 +41,11 @@ import com.barathiraja.dinam.ui.theme.DinamDimensions
 
 @Composable
 fun TodayScreen(
+    todayViewModel: TodayViewModel,
     onBack: () -> Unit
 ) {
+
+    val uiState by todayViewModel.uiState.collectAsState()
 
     var itemText by remember {
         mutableStateOf("Evening tablet")
@@ -51,17 +59,21 @@ fun TodayScreen(
         mutableStateOf(true)
     }
 
-    val todos = remember {
-        mutableStateOf(
-            listOf(
-                TodoItem("Run", "6:30", true),
-                TodoItem("Morning tablet", "8:00", true),
-                TodoItem("Vitamin D", "8:00", true),
-                TodoItem("Evening tablet", "21:30", false),
-                TodoItem("Ten minutes of reading", "21:30", false),
-                TodoItem("Make the bed", null, false)
-            )
+    fun addCurrentItem() {
+        val text = itemText.trim()
+
+        if (text.isEmpty()) {
+            return
+        }
+
+        todayViewModel.addItem(
+            text = text,
+            remindAt = selectedTime.ifEmpty { null }
         )
+
+        itemText = ""
+        selectedTime = ""
+        repeatSelected = false
     }
 
     Column(
@@ -184,9 +196,9 @@ fun TodayScreen(
             ) {
 
                 Text(
-                    text = "3 of 6",
+                    text = "${uiState.items.count { it.checked }} of ${uiState.items.size}",
                     fontSize = 18.sp,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    fontWeight = FontWeight.Bold,
                     color = DinamColors.TextPrimary
                 )
 
@@ -207,20 +219,19 @@ fun TodayScreen(
                 )
             )
 
-            todos.value.forEachIndexed { index, item ->
+            uiState.items.forEach { occurrenceItem ->
 
                 TodoRow(
-                    item = item,
+                    item = TodoItem(
+                        title = occurrenceItem.text,
+                        time = occurrenceItem.remindAt,
+                        checked = occurrenceItem.checked
+                    ),
                     onCheckedChange = {
-
-                        val updatedTodos =
-                            todos.value.toMutableList()
-
-                        updatedTodos[index] = item.copy(
-                            checked = !item.checked
+                        todayViewModel.setItemChecked(
+                            item = occurrenceItem,
+                            checked = !occurrenceItem.checked
                         )
-
-                        todos.value = updatedTodos
                     }
                 )
             }
@@ -252,7 +263,10 @@ fun TodayScreen(
             Text(
                 text = "+",
                 style = MaterialTheme.typography.titleLarge,
-                color = DinamColors.TextPrimary
+                color = DinamColors.TextPrimary,
+                modifier = Modifier.clickable {
+                    addCurrentItem()
+                }
             )
 
             Spacer(
@@ -273,6 +287,14 @@ fun TodayScreen(
                 textStyle = TextStyle(
                     fontSize = 18.sp,
                     color = DinamColors.TextPrimary
+                ),
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        addCurrentItem()
+                    }
                 ),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = DinamColors.Surface,
@@ -297,11 +319,13 @@ fun TodayScreen(
             )
         ) {
 
-            ComposerChip(
-                text = selectedTime,
-                selected = selectedTime.isNotEmpty(),
-                onClick = { }
-            )
+            if (selectedTime.isNotEmpty()) {
+                ComposerChip(
+                    text = selectedTime,
+                    selected = true,
+                    onClick = { }
+                )
+            }
 
             ComposerChip(
                 text = "Every day",
