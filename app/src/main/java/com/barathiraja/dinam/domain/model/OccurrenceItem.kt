@@ -11,5 +11,6 @@ data class OccurrenceItem(
     val position: Int,
     val checked: Boolean,
     val checkedAt: Long?,
-    val snoozedUntil: Long? = null
+    val snoozedUntil: Long? = null,
+    val listName: String? = null
 )

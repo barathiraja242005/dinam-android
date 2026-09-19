@@ -33,5 +33,8 @@ data class OccurrenceItemEntity(
     val checkedAt: Long?,
 
     @ColumnInfo(name = "snoozed_until")
-    val snoozedUntil: Long? = null
+    val snoozedUntil: Long? = null,
+
+    @ColumnInfo(name = "list_name")
+    val listName: String? = null
 )

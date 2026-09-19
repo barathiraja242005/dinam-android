@@ -51,22 +51,33 @@ fun TodoRow(
                 )
             )
 
-            Text(
-                text = item.title,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color = if (item.checked) {
-                        DinamColors.TextMuted
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        color = if (item.checked) {
+                            DinamColors.TextMuted
+                        } else {
+                            DinamColors.TextPrimary
+                        }
+                    ),
+                    textDecoration = if (item.checked) {
+                        TextDecoration.LineThrough
                     } else {
-                        DinamColors.TextPrimary
+                        TextDecoration.None
                     }
-                ),
-                textDecoration = if (item.checked) {
-                    TextDecoration.LineThrough
-                } else {
-                    TextDecoration.None
+                )
+
+                if (!item.listName.isNullOrEmpty()) {
+                    Text(
+                        text = item.listName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DinamColors.TextSecondary
+                    )
                 }
-            )
+            }
 
             if (item.time != null) {
 

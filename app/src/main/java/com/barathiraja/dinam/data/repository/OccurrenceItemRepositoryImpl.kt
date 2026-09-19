@@ -53,7 +53,8 @@ class OccurrenceItemRepositoryImpl(
             position = position,
             checked = checked,
             checkedAt = checkedAt,
-            snoozedUntil = snoozedUntil
+            snoozedUntil = snoozedUntil,
+            listName = listName
         )
     }
 
@@ -69,7 +70,8 @@ class OccurrenceItemRepositoryImpl(
             position = position,
             checked = checked,
             checkedAt = checkedAt,
-            snoozedUntil = snoozedUntil
+            snoozedUntil = snoozedUntil,
+            listName = listName
         )
     }
 }

@@ -6,5 +6,6 @@ data class TodoItem(
     val title: String,
     val time: String? = null,
     val checked: Boolean = false,
-    val id: String = UUID.randomUUID().toString()
+    val id: String = UUID.randomUUID().toString(),
+    val listName: String? = null
 )

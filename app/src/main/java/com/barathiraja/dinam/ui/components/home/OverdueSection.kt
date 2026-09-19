@@ -82,8 +82,14 @@ fun OverdueSection(
                             style = MaterialTheme.typography.bodyLarge,
                             color = DinamColors.TextPrimary
                         )
+
+                        val subtitleText = listOfNotNull(
+                            "Due $originalDateFormatted",
+                            item.listName?.ifEmpty { null }
+                        ).joinToString(" · ")
+
                         Text(
-                            text = "Due $originalDateFormatted",
+                            text = subtitleText,
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFFD93025)
                         )

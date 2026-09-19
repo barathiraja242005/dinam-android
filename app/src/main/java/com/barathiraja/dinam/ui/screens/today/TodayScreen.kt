@@ -333,7 +333,8 @@ fun TodayScreen(
                             item = TodoItem(
                                 title = occurrenceItem.text,
                                 time = occurrenceItem.remindAt,
-                                checked = occurrenceItem.checked
+                                checked = occurrenceItem.checked,
+                                listName = occurrenceItem.listName
                             ),
                             onCheckedChange = {
                                 if (date == today) {

@@ -434,7 +434,8 @@ private fun OccurrenceItem.toTodoItem():
     return com.barathiraja.dinam.data.model.TodoItem(
         title = text,
         time = remindAt,
-        checked = checked
+        checked = checked,
+        listName = listName
     )
 }
 
