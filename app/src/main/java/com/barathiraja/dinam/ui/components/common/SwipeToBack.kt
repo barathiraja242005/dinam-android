@@ -18,14 +18,18 @@ fun Modifier.swipeToBack(
     val minDistancePx = minSwipeDistance.toPx()
 
     awaitEachGesture {
-        val down = awaitFirstDown(pass = PointerEventPass.Initial, requireUnconsumed = false)
+        val down = awaitFirstDown(pass = PointerEventPass.Main, requireUnconsumed = false)
         var totalX = 0f
         var totalY = 0f
         var isBackGesture = false
 
         while (true) {
-            val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+            val event = awaitPointerEvent(pass = PointerEventPass.Main)
             val change = event.changes.firstOrNull { it.id == down.id } ?: break
+
+            if (change.isConsumed && !isBackGesture) {
+                break
+            }
 
             if (!change.pressed) {
                 if (isBackGesture && totalX >= minDistancePx) {

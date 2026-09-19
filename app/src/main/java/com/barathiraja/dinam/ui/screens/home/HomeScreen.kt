@@ -248,6 +248,10 @@ fun HomeScreen(
                         onItemClick(item)
                     },
                     onSwipeRight = {
+                        android.util.Log.d(
+                            "DELETE_DEBUG",
+                            "HomeScreen onSwipeRight RECEIVED: ${item.text}, id=${item.id}"
+                        )
                         onDeleteItem(item)
                     },
                     onSaveInlineEdit = { newText ->

@@ -1,5 +1,6 @@
 package com.barathiraja.dinam.ui.components.home
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -42,27 +43,58 @@ fun TodoRow(
     onSwipeRight: (() -> Unit)? = null,
     onSaveInlineEdit: ((newText: String) -> Unit)? = null
 ) {
-    var isEditing by remember(item.id) { mutableStateOf(false) }
-    var editText by remember(item.id, item.title) { mutableStateOf(item.title) }
+    var isEditing by remember(item.id) {
+        mutableStateOf(false)
+    }
+
+    var editText by remember(item.id, item.title) {
+        mutableStateOf(item.title)
+    }
 
     val keyboardController = LocalSoftwareKeyboardController.current
 
     SwipeableTaskRow(
         enabled = !isEditing,
+
         onSwipeLeft = {
             if (onSaveInlineEdit != null) {
                 editText = item.title
                 isEditing = true
             }
         },
-        onSwipeRight = onSwipeRight
+
+        onSwipeRight = {
+            Log.d(
+                "DELETE_DEBUG",
+                "TodoRow callback exists = ${onSwipeRight != null}, item=${item.title}"
+            )
+
+            if (onSwipeRight != null) {
+                Log.d(
+                    "DELETE_DEBUG",
+                    "TodoRow INVOKING parent onSwipeRight"
+                )
+
+                onSwipeRight()
+            } else {
+                Log.d(
+                    "DELETE_DEBUG",
+                    "TodoRow onSwipeRight is NULL"
+                )
+            }
+        }
     ) {
         Column {
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = DinamDimensions.itemRowHeight)
-                    .clickable(enabled = !isEditing) {
+                    .heightIn(
+                        min = DinamDimensions.itemRowHeight
+                    )
+                    .clickable(
+                        enabled = !isEditing
+                    ) {
                         onItemClick()
                     }
                     .padding(
@@ -87,28 +119,41 @@ fun TodoRow(
                 )
 
                 if (isEditing) {
+
                     BasicTextField(
                         value = editText,
-                        onValueChange = { editText = it },
+                        onValueChange = {
+                            editText = it
+                        },
                         modifier = Modifier.weight(1f),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = DinamColors.TextPrimary
                         ),
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Done
+                        ),
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 keyboardController?.hide()
+
                                 val trimmed = editText.trim()
-                                if (trimmed.isNotEmpty() && onSaveInlineEdit != null) {
+
+                                if (
+                                    trimmed.isNotEmpty() &&
+                                    onSaveInlineEdit != null
+                                ) {
                                     onSaveInlineEdit(trimmed)
                                 }
+
                                 isEditing = false
                             }
                         )
                     )
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(
+                        modifier = Modifier.width(8.dp)
+                    )
 
                     Text(
                         text = "✓",
@@ -117,19 +162,32 @@ fun TodoRow(
                         color = DinamColors.Primary,
                         modifier = Modifier
                             .clickable {
+
                                 keyboardController?.hide()
+
                                 val trimmed = editText.trim()
-                                if (trimmed.isNotEmpty() && onSaveInlineEdit != null) {
+
+                                if (
+                                    trimmed.isNotEmpty() &&
+                                    onSaveInlineEdit != null
+                                ) {
                                     onSaveInlineEdit(trimmed)
                                 }
+
                                 isEditing = false
                             }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(
+                                horizontal = 8.dp,
+                                vertical = 4.dp
+                            )
                     )
+
                 } else {
+
                     Column(
                         modifier = Modifier.weight(1f)
                     ) {
+
                         Text(
                             text = item.title,
                             style = MaterialTheme.typography.bodyLarge.copy(
@@ -147,7 +205,11 @@ fun TodoRow(
                         )
 
                         if (!item.listName.isNullOrEmpty()) {
-                            Spacer(modifier = Modifier.height(2.dp))
+
+                            Spacer(
+                                modifier = Modifier.height(2.dp)
+                            )
+
                             Text(
                                 text = item.listName,
                                 style = MaterialTheme.typography.bodySmall,
@@ -157,7 +219,11 @@ fun TodoRow(
                     }
 
                     if (item.time != null) {
-                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Spacer(
+                            modifier = Modifier.width(8.dp)
+                        )
+
                         Text(
                             text = item.time,
                             style = MaterialTheme.typography.bodyLarge.copy(

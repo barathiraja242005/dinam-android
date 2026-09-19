@@ -2,6 +2,7 @@
 
 package com.barathiraja.dinam.ui.screens.today
 
+import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -40,29 +41,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.barathiraja.dinam.domain.model.OccurrenceItem
-import com.barathiraja.dinam.domain.model.OverdueItem
 import com.barathiraja.dinam.data.model.TodoItem
 import com.barathiraja.dinam.domain.util.DateProvider
 import com.barathiraja.dinam.ui.components.common.ComposerChip
 import com.barathiraja.dinam.ui.components.common.DateItem
 import com.barathiraja.dinam.ui.components.common.swipeToBack
-import com.barathiraja.dinam.ui.components.home.OverdueSection
 import com.barathiraja.dinam.ui.components.home.CheckmarkBox
+import com.barathiraja.dinam.ui.components.home.OverdueSection
 import com.barathiraja.dinam.ui.components.home.TodoRow
 import com.barathiraja.dinam.ui.screens.past.PastOccurrenceScreen
 import com.barathiraja.dinam.ui.screens.time.TimePickerScreen
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamDimensions
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -137,7 +134,6 @@ fun TodayScreen(
     }
 
     LaunchedEffect(selectedDate) {
-
         todayViewModel.selectDate(
             periodDate = selectedDate.toString()
         )
@@ -183,9 +179,7 @@ fun TodayScreen(
                 text = if (selectedDate == today) {
                     "Today"
                 } else {
-                    formatFullDate(
-                        selectedDate
-                    )
+                    formatFullDate(selectedDate)
                 },
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold
@@ -202,9 +196,7 @@ fun TodayScreen(
             LazyRow(
                 state = dateListState,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(
-                    4.dp
-                )
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
 
                 items(
@@ -216,13 +208,12 @@ fun TodayScreen(
 
                     DateItem(
                         day = date.dayOfWeek.getDisplayName(
-                            JavaTextStyle.SHORT,
+                            java.time.format.TextStyle.SHORT,
                             Locale.US
                         ),
                         date = date.dayOfMonth.toString(),
                         selected = date == selectedDate,
                         modifier = Modifier.clickable {
-
                             selectedDate = date
                         }
                     )
@@ -270,7 +261,6 @@ fun TodayScreen(
                     items = uiState.items,
                     onBack = onBack,
                     onItemCheckedChange = { item, checked ->
-
                         todayViewModel.setItemChecked(
                             item = item,
                             checked = checked
@@ -307,9 +297,7 @@ fun TodayScreen(
                         )
 
                         Spacer(
-                            modifier = Modifier.width(
-                                8.dp
-                            )
+                            modifier = Modifier.width(8.dp)
                         )
 
                         Text(
@@ -331,7 +319,14 @@ fun TodayScreen(
 
                     uiState.items.forEach { occurrenceItem ->
 
+
+                        android.util.Log.d(
+                            "DELETE_DEBUG",
+                            "TodayScreen CREATING TodoRow: ${occurrenceItem.text}, id=${occurrenceItem.id}"
+                        )
+
                         TodoRow(
+
                             item = TodoItem(
                                 title = occurrenceItem.text,
                                 time = occurrenceItem.remindAt,
@@ -350,16 +345,29 @@ fun TodayScreen(
                                 onItemClick(occurrenceItem)
                             },
                             checkboxEnabled = (date == today),
+
+                            // THIS IS THE IMPORTANT FIX
                             onSwipeRight = {
+                                Log.d(
+                                    "DELETE_DEBUG",
+                                    "TodayScreen onSwipeRight RECEIVED: " +
+                                            "${occurrenceItem.text}, id=${occurrenceItem.id}"
+                                )
+
                                 onDeleteItem(occurrenceItem)
                             },
+
                             onSaveInlineEdit = { newText ->
-                                onSaveInlineEdit(occurrenceItem, newText)
+                                onSaveInlineEdit(
+                                    occurrenceItem,
+                                    newText
+                                )
                             }
                         )
                     }
 
                     if (date == today && uiState.overdueItems.isNotEmpty()) {
+
                         OverdueSection(
                             overdueItems = uiState.overdueItems,
                             onRescheduleClick = { item ->
@@ -369,9 +377,7 @@ fun TodayScreen(
                     }
 
                     Spacer(
-                        modifier = Modifier.height(
-                            4.dp
-                        )
+                        modifier = Modifier.height(4.dp)
                     )
 
                     Spacer(
@@ -386,8 +392,7 @@ fun TodayScreen(
                     )
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
 
@@ -401,9 +406,7 @@ fun TodayScreen(
                         )
 
                         Spacer(
-                            modifier = Modifier.width(
-                                14.dp
-                            )
+                            modifier = Modifier.width(14.dp)
                         )
 
                         TextField(
@@ -478,9 +481,7 @@ fun TodayScreen(
                     }
 
                     Spacer(
-                        modifier = Modifier.height(
-                            14.dp
-                        )
+                        modifier = Modifier.height(14.dp)
                     )
 
                     Column(
@@ -567,13 +568,16 @@ fun TodayScreen(
                 )
             },
             confirmButton = {
+
                 Column(
                     modifier = Modifier.fillMaxWidth()
                 ) {
+
                     TextButton(
                         onClick = {
                             val targetItem = itemToReschedule
                             itemToReschedule = null
+
                             if (targetItem != null) {
                                 todayViewModel.rescheduleOverdueItem(
                                     overdueItem = targetItem,
@@ -594,10 +598,13 @@ fun TodayScreen(
                         onClick = {
                             val targetItem = itemToReschedule
                             itemToReschedule = null
+
                             if (targetItem != null) {
                                 todayViewModel.rescheduleOverdueItem(
                                     overdueItem = targetItem,
-                                    targetDate = DateProvider.today().plusDays(1).toString()
+                                    targetDate = DateProvider.today()
+                                        .plusDays(1)
+                                        .toString()
                                 )
                             }
                         },
@@ -612,6 +619,7 @@ fun TodayScreen(
                 }
             },
             dismissButton = {
+
                 TextButton(
                     onClick = {
                         itemToReschedule = null

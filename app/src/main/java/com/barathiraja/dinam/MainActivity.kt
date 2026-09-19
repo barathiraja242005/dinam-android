@@ -7,12 +7,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -25,12 +23,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
+import com.barathiraja.dinam.data.repository.Repositories
 import com.barathiraja.dinam.domain.model.DinamList
 import com.barathiraja.dinam.domain.model.ListItem
 import com.barathiraja.dinam.domain.model.OccurrenceItem
 import com.barathiraja.dinam.domain.model.TodayItem
 import com.barathiraja.dinam.domain.util.DateProvider
-import com.barathiraja.dinam.data.repository.Repositories
 import com.barathiraja.dinam.ui.screens.home.HomeScreen
 import com.barathiraja.dinam.ui.screens.home.HomeViewModel
 import com.barathiraja.dinam.ui.screens.home.HomeViewModelFactory
@@ -49,7 +47,6 @@ import com.barathiraja.dinam.ui.screens.today.TodayViewModelFactory
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamTheme
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {
@@ -94,21 +91,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(
         savedInstanceState: Bundle?
     ) {
-        super.onCreate(
-            savedInstanceState
-        )
+        super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
 
         setContent {
-
             DinamTheme {
-
                 DinamApp(
                     todayViewModel = todayViewModel,
                     homeViewModel = homeViewModel,
-                    listDetailViewModel =
-                        listDetailViewModel,
+                    listDetailViewModel = listDetailViewModel,
                     repositories = repositories
                 )
             }
@@ -178,9 +170,7 @@ private fun DinamApp(
     }
 
     var selectedListItems by remember {
-        mutableStateOf<List<ListItem>>(
-            emptyList()
-        )
+        mutableStateOf<List<ListItem>>(emptyList())
     }
 
     var showAddListItemDialog by remember {
@@ -191,16 +181,9 @@ private fun DinamApp(
         mutableStateOf("")
     }
 
-    val coroutineScope =
-        rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
 
     when {
-
-        /*
-         * -----------------------------------------------------
-         * ITEM DETAIL
-         * -----------------------------------------------------
-         */
 
         selectedItem != null -> {
 
@@ -231,8 +214,7 @@ private fun DinamApp(
 
                 onEveryDayChanged = { enabled ->
 
-                    val todayItem =
-                        selectedTodayItem
+                    val todayItem = selectedTodayItem
 
                     if (todayItem != null) {
 
@@ -241,14 +223,12 @@ private fun DinamApp(
                         coroutineScope.launch {
 
                             val selectedDate =
-                                todayViewModel.uiState.value
-                                    .selectedDate
+                                todayViewModel.uiState.value.selectedDate
 
                             repositories
                                 .todayOccurrenceService
                                 .setEveryDay(
-                                    userId =
-                                        todayItem.userId,
+                                    userId = todayItem.userId,
                                     item = todayItem,
                                     enabled = enabled,
                                     periodDate = selectedDate
@@ -260,6 +240,7 @@ private fun DinamApp(
                 },
 
                 onRemoveItem = {
+
                     if (everyDayEnabled) {
                         showScopeSheet = true
                     } else {
@@ -267,12 +248,6 @@ private fun DinamApp(
                     }
                 }
             )
-
-            /*
-             * -------------------------------------------------
-             * ITEM TIME PICKER
-             * -------------------------------------------------
-             */
 
             if (showItemTimePicker) {
 
@@ -293,13 +268,23 @@ private fun DinamApp(
                             showItemTimePicker = false
 
                             val currentItem = selectedItem
+
                             if (currentItem != null) {
+
                                 coroutineScope.launch {
-                                    repositories.todayOccurrenceService.updateItemTime(
-                                        item = currentItem,
-                                        newTime = time
-                                    )
-                                    selectedItem = currentItem.copy(remindAt = time)
+
+                                    repositories
+                                        .todayOccurrenceService
+                                        .updateItemTime(
+                                            item = currentItem,
+                                            newTime = time
+                                        )
+
+                                    selectedItem =
+                                        currentItem.copy(
+                                            remindAt = time
+                                        )
+
                                     todayViewModel.refreshSelectedDate()
                                 }
                             }
@@ -311,13 +296,23 @@ private fun DinamApp(
                             showItemTimePicker = false
 
                             val currentItem = selectedItem
+
                             if (currentItem != null) {
+
                                 coroutineScope.launch {
-                                    repositories.todayOccurrenceService.updateItemTime(
-                                        item = currentItem,
-                                        newTime = null
-                                    )
-                                    selectedItem = currentItem.copy(remindAt = null)
+
+                                    repositories
+                                        .todayOccurrenceService
+                                        .updateItemTime(
+                                            item = currentItem,
+                                            newTime = null
+                                        )
+
+                                    selectedItem =
+                                        currentItem.copy(
+                                            remindAt = null
+                                        )
+
                                     todayViewModel.refreshSelectedDate()
                                 }
                             }
@@ -329,170 +324,7 @@ private fun DinamApp(
                     )
                 }
             }
-
-            /*
-             * -------------------------------------------------
-             * REMOVE ITEM SCOPE SHEET
-             * -------------------------------------------------
-             */
-
-            if (showScopeSheet) {
-
-                val activeItem = itemToDelete ?: selectedItem
-
-                if (activeItem != null) {
-                    ModalBottomSheet(
-                        onDismissRequest = {
-                            showScopeSheet = false
-                            itemToDelete = null
-                        },
-                        containerColor = DinamColors.Surface
-                    ) {
-
-                        ScopeSheet(
-                            itemTitle = activeItem.text,
-
-                            onJustToday = {
-
-                                val todayItem = selectedTodayItem
-                                val selectedDate = todayViewModel.uiState.value.selectedDate
-
-                                coroutineScope.launch {
-                                    repositories.todayOccurrenceService.removeJustToday(
-                                        userId = todayItem?.userId
-                                            ?: repositories.userSession.getCurrentUser().id,
-                                        todayItemId = activeItem.todayItemId ?: activeItem.id,
-                                        periodDate = selectedDate
-                                    )
-
-                                    showScopeSheet = false
-                                    itemToDelete = null
-                                    selectedItem = null
-                                    selectedTodayItem = null
-                                    editedItemTime = null
-                                    everyDayEnabled = false
-
-                                    todayViewModel.refreshSelectedDate()
-                                }
-                            },
-
-                            onTodayAndFuture = {
-
-                                val todayItem = selectedTodayItem
-                                val selectedDate = todayViewModel.uiState.value.selectedDate
-
-                                if (todayItem != null) {
-                                    coroutineScope.launch {
-                                        repositories.todayOccurrenceService.removeTodayAndFuture(
-                                            userId = todayItem.userId,
-                                            todayItemId = todayItem.id,
-                                            periodDate = selectedDate
-                                        )
-
-                                        showScopeSheet = false
-                                        itemToDelete = null
-                                        selectedItem = null
-                                        selectedTodayItem = null
-                                        editedItemTime = null
-                                        everyDayEnabled = false
-
-                                        todayViewModel.refreshSelectedDate()
-                                    }
-                                } else {
-                                    showScopeSheet = false
-                                    itemToDelete = null
-                                }
-                            },
-
-                            onCancel = {
-                                showScopeSheet = false
-                                itemToDelete = null
-                            }
-                        )
-                    }
-                }
-            }
-
-            /*
-             * -------------------------------------------------
-             * DELETE ONE-TIME ITEM CONFIRM DIALOG
-             * -------------------------------------------------
-             */
-
-            if (showDeleteItemConfirmDialog) {
-
-                val activeItem = itemToDelete ?: selectedItem
-
-                if (activeItem != null) {
-                    AlertDialog(
-                        onDismissRequest = {
-                            showDeleteItemConfirmDialog = false
-                            itemToDelete = null
-                        },
-                        title = {
-                            Text(
-                                text = "Delete item",
-                                color = DinamColors.TextTitle
-                            )
-                        },
-                        text = {
-                            Text(
-                                text = "Are you sure you want to delete \"${activeItem.text}\"?",
-                                color = DinamColors.TextPrimary
-                            )
-                        },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    val todayItem = selectedTodayItem
-                                    val selectedDate = todayViewModel.uiState.value.selectedDate
-
-                                    coroutineScope.launch {
-                                        repositories.todayOccurrenceService.removeJustToday(
-                                            userId = todayItem?.userId
-                                                ?: repositories.userSession.getCurrentUser().id,
-                                            todayItemId = activeItem.todayItemId ?: activeItem.id,
-                                            periodDate = selectedDate
-                                        )
-
-                                        showDeleteItemConfirmDialog = false
-                                        itemToDelete = null
-                                        selectedItem = null
-                                        selectedTodayItem = null
-                                        editedItemTime = null
-                                        everyDayEnabled = false
-
-                                        todayViewModel.refreshSelectedDate()
-                                    }
-                                }
-                            ) {
-                                Text(
-                                    text = "Delete"
-                                )
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(
-                                onClick = {
-                                    showDeleteItemConfirmDialog = false
-                                    itemToDelete = null
-                                }
-                            ) {
-                                Text(
-                                    text = "Cancel"
-                                )
-                            }
-                        }
-                    )
-                }
-            }
         }
-
-        /*
-         * -----------------------------------------------------
-         * RESCHEDULE OVERDUE ITEM SCREEN
-         * -----------------------------------------------------
-         */
 
         rescheduleItem != null -> {
 
@@ -502,11 +334,19 @@ private fun DinamApp(
 
             RescheduleScreen(
                 item = rescheduleItem!!,
+
                 onBack = {
                     rescheduleItem = null
                 },
-                onRescheduleChanged = { item, newDate, newTime, newRemindMe ->
+
+                onRescheduleChanged = {
+                        item,
+                        newDate,
+                        newTime,
+                        newRemindMe ->
+
                     rescheduleItem = null
+
                     todayViewModel.rescheduleOverdueItem(
                         overdueItem = item,
                         targetDate = newDate,
@@ -517,12 +357,6 @@ private fun DinamApp(
             )
         }
 
-        /*
-         * -----------------------------------------------------
-         * LIST ITEM DETAIL
-         * -----------------------------------------------------
-         */
-
         selectedListItem != null -> {
 
             BackHandler {
@@ -532,36 +366,41 @@ private fun DinamApp(
 
             ListItemDetailScreen(
                 item = selectedListItem!!,
+
                 onBack = {
                     selectedListItem = null
                     todayViewModel.refreshSelectedDate()
                 },
+
                 onSaveItem = { updatedItem ->
+
                     selectedListItem = updatedItem
+
                     listDetailViewModel.updateItem(updatedItem)
+
                     todayViewModel.refreshSelectedDate()
                 },
+
                 onDeleteItem = { item ->
+
                     selectedListItem = null
+
                     listDetailViewModel.deleteItem(item)
+
                     todayViewModel.refreshSelectedDate()
                 }
             )
         }
 
-        /*
-         * -----------------------------------------------------
-         * LIST DETAIL
-         * -----------------------------------------------------
-         */
-
         selectedList != null -> {
 
             BackHandler {
+
                 selectedList = null
                 selectedListItems = emptyList()
                 showAddListItemDialog = false
                 newListItemText = ""
+
                 homeViewModel.loadLists()
                 todayViewModel.refreshSelectedDate()
             }
@@ -589,6 +428,7 @@ private fun DinamApp(
                         item = item,
                         checked = checked
                     )
+
                     todayViewModel.refreshSelectedDate()
                 },
 
@@ -597,9 +437,7 @@ private fun DinamApp(
                 },
 
                 onAddFromYourLists = {
-                    /*
-                     * Suggestion sheet removed from V1 UI.
-                     */
+                    // Suggestion sheet removed from V1 UI.
                 },
 
                 onAddItem = {
@@ -608,19 +446,13 @@ private fun DinamApp(
                     showAddListItemDialog = true
                 },
 
-                viewModel =
-                    listDetailViewModel
+                viewModel = listDetailViewModel
             )
-
-            /*
-             * -------------------------------------------------
-             * ADD LIST ITEM DIALOG
-             * -------------------------------------------------
-             */
 
             if (showAddListItemDialog) {
 
                 AlertDialog(
+
                     onDismissRequest = {
 
                         showAddListItemDialog = false
@@ -628,26 +460,24 @@ private fun DinamApp(
                     },
 
                     title = {
-                        Text(
-                            text = "Add item"
-                        )
+                        Text(text = "Add item")
                     },
 
                     text = {
 
                         TextField(
                             value = newListItemText,
+
                             onValueChange = {
                                 newListItemText = it
                             },
-                            modifier =
-                                androidx.compose.ui.Modifier
-                                    .fillMaxWidth(),
+
+                            modifier = Modifier.fillMaxWidth(),
+
                             singleLine = true,
+
                             placeholder = {
-                                Text(
-                                    text = "Item name"
-                                )
+                                Text(text = "Item name")
                             }
                         )
                     },
@@ -668,23 +498,20 @@ private fun DinamApp(
                                     if (currentList != null) {
 
                                         listDetailViewModel.addItem(
-                                            listId =
-                                                currentList.id,
+                                            listId = currentList.id,
                                             text = text
                                         )
-                                        todayViewModel.refreshSelectedDate()
+
+                                        todayViewModel
+                                            .refreshSelectedDate()
                                     }
 
-                                    showAddListItemDialog =
-                                        false
-
+                                    showAddListItemDialog = false
                                     newListItemText = ""
                                 }
                             }
                         ) {
-                            Text(
-                                text = "Add"
-                            )
+                            Text(text = "Add")
                         }
                     },
 
@@ -697,20 +524,12 @@ private fun DinamApp(
                                 newListItemText = ""
                             }
                         ) {
-                            Text(
-                                text = "Cancel"
-                            )
+                            Text(text = "Cancel")
                         }
                     }
                 )
             }
         }
-
-        /*
-         * -----------------------------------------------------
-         * NEW LIST
-         * -----------------------------------------------------
-         */
 
         showNewList -> {
 
@@ -731,27 +550,21 @@ private fun DinamApp(
                     coroutineScope.launch {
 
                         val user =
-                            repositories.userSession
-                                .getCurrentUser()
+                            repositories.userSession.getCurrentUser()
 
                         val newList =
                             DinamList(
-                                id =
-                                    UUID.randomUUID()
-                                        .toString(),
-                                userId =
-                                    user.id,
+                                id = UUID.randomUUID().toString(),
+                                userId = user.id,
                                 title = title,
                                 category = category,
                                 archivedAt = null,
-                                createdAt =
-                                    System.currentTimeMillis()
+                                createdAt = System.currentTimeMillis()
                             )
 
-                        repositories.listRepository
-                            .insertList(
-                                newList
-                            )
+                        repositories
+                            .listRepository
+                            .insertList(newList)
 
                         selectedList = newList
                         selectedListItems = emptyList()
@@ -768,50 +581,62 @@ private fun DinamApp(
             )
         }
 
-        /*
-         * -----------------------------------------------------
-         * TODAY
-         * -----------------------------------------------------
-         */
-
         showToday -> {
 
             BackHandler {
+
                 todayViewModel.selectDate(
                     DateProvider.todayString()
                 )
+
                 showToday = false
             }
 
             TodayScreen(
+
                 todayViewModel = todayViewModel,
 
                 onBack = {
+
                     todayViewModel.selectDate(
                         DateProvider.todayString()
                     )
+
                     showToday = false
                 },
 
                 onItemClick = { item ->
 
                     if (item.origin == "list_item") {
+
                         coroutineScope.launch {
-                            val listItem = repositories.listItemRepository
-                                .getItemsForList(item.occurrenceId)
-                                .firstOrNull { it.id == item.id }
+
+                            val listItem =
+                                repositories
+                                    .listItemRepository
+                                    .getItemsForList(
+                                        item.occurrenceId
+                                    )
+                                    .firstOrNull {
+                                        it.id == item.id
+                                    }
+
                             if (listItem != null) {
                                 selectedListItem = listItem
                             }
                         }
+
                     } else {
+
                         selectedItem = item
                         editedItemTime = item.remindAt
 
                         coroutineScope.launch {
 
                             val selectedDate =
-                                todayViewModel.uiState.value
+                                todayViewModel
+                                    .uiState
+                                    .value
                                     .selectedDate
 
                             val userId =
@@ -834,7 +659,9 @@ private fun DinamApp(
                                     it.id == item.todayItemId
                                 }
                                     ?: item.todayItemId?.let {
-                                        repositories.todayRepository.getItemById(it)
+                                        repositories
+                                            .todayRepository
+                                            .getItemById(it)
                                     }
 
                             selectedTodayItem =
@@ -847,37 +674,86 @@ private fun DinamApp(
                     }
                 },
 
-                onSaveInlineEdit = { item, newText ->
+                onSaveInlineEdit = {
+                        item,
+                        newText ->
+
                     coroutineScope.launch {
-                        val user = repositories.userSession.getCurrentUser()
-                        val selectedDate = todayViewModel.uiState.value.selectedDate
-                        repositories.todayOccurrenceService.renameItem(
-                            userId = user.id,
-                            item = item,
-                            newText = newText,
-                            currentDate = selectedDate
-                        )
+
+                        val user =
+                            repositories.userSession.getCurrentUser()
+
+                        val selectedDate =
+                            todayViewModel
+                                .uiState
+                                .value
+                                .selectedDate
+
+                        repositories
+                            .todayOccurrenceService
+                            .renameItem(
+                                userId = user.id,
+                                item = item,
+                                newText = newText,
+                                currentDate = selectedDate
+                            )
+
                         todayViewModel.refreshSelectedDate()
                     }
                 },
 
                 onDeleteItem = { item ->
+
                     selectedItem = null
                     selectedListItem = null
                     itemToDelete = item
-                    coroutineScope.launch {
-                        val selectedDate = todayViewModel.uiState.value.selectedDate
-                        val userId = repositories.userRepository.getCurrentUser()?.id ?: return@launch
-                        val todayItems = repositories.todayRepository.getItemsForDate(userId, selectedDate)
-                        val matchingTodayItem = todayItems.firstOrNull { it.id == item.todayItemId }
-                            ?: item.todayItemId?.let { repositories.todayRepository.getItemById(it) }
 
-                        selectedTodayItem = matchingTodayItem
-                        everyDayEnabled = matchingTodayItem != null && matchingTodayItem.activeUntil == null
+                    coroutineScope.launch {
+
+                        val selectedDate =
+                            todayViewModel
+                                .uiState
+                                .value
+                                .selectedDate
+
+                        val userId =
+                            repositories
+                                .userRepository
+                                .getCurrentUser()
+                                ?.id
+                                ?: return@launch
+
+                        val todayItems =
+                            repositories
+                                .todayRepository
+                                .getItemsForDate(
+                                    userId,
+                                    selectedDate
+                                )
+
+                        val matchingTodayItem =
+                            todayItems.firstOrNull {
+                                it.id == item.todayItemId
+                            }
+                                ?: item.todayItemId?.let {
+                                    repositories
+                                        .todayRepository
+                                        .getItemById(it)
+                                }
+
+                        selectedTodayItem =
+                            matchingTodayItem
+
+                        everyDayEnabled =
+                            matchingTodayItem != null &&
+                                    matchingTodayItem.activeUntil == null
 
                         if (everyDayEnabled) {
+
                             showScopeSheet = true
+
                         } else {
+
                             showDeleteItemConfirmDialog = true
                         }
                     }
@@ -885,16 +761,12 @@ private fun DinamApp(
             )
         }
 
-        /*
-         * -----------------------------------------------------
-         * HOME
-         * -----------------------------------------------------
-         */
-
         else -> {
 
             HomeScreen(
+
                 homeViewModel = homeViewModel,
+
                 todayViewModel = todayViewModel,
 
                 onOpenToday = {
@@ -931,22 +803,35 @@ private fun DinamApp(
                 onItemClick = { item ->
 
                     if (item.origin == "list_item") {
+
                         coroutineScope.launch {
-                            val listItem = repositories.listItemRepository
-                                .getItemsForList(item.occurrenceId)
-                                .firstOrNull { it.id == item.id }
+
+                            val listItem =
+                                repositories
+                                    .listItemRepository
+                                    .getItemsForList(
+                                        item.occurrenceId
+                                    )
+                                    .firstOrNull {
+                                        it.id == item.id
+                                    }
+
                             if (listItem != null) {
                                 selectedListItem = listItem
                             }
                         }
+
                     } else {
+
                         selectedItem = item
                         editedItemTime = item.remindAt
 
                         coroutineScope.launch {
 
                             val selectedDate =
-                                todayViewModel.uiState.value
+                                todayViewModel
+                                    .uiState
+                                    .value
                                     .selectedDate
 
                             val userId =
@@ -969,7 +854,9 @@ private fun DinamApp(
                                     it.id == item.todayItemId
                                 }
                                     ?: item.todayItemId?.let {
-                                        repositories.todayRepository.getItemById(it)
+                                        repositories
+                                            .todayRepository
+                                            .getItemById(it)
                                     }
 
                             selectedTodayItem =
@@ -982,39 +869,327 @@ private fun DinamApp(
                     }
                 },
 
-                onSaveInlineEdit = { item, newText ->
+                onSaveInlineEdit = {
+                        item,
+                        newText ->
+
                     coroutineScope.launch {
-                        val user = repositories.userSession.getCurrentUser()
-                        val selectedDate = todayViewModel.uiState.value.selectedDate
-                        repositories.todayOccurrenceService.renameItem(
-                            userId = user.id,
-                            item = item,
-                            newText = newText,
-                            currentDate = selectedDate
-                        )
+
+                        val user =
+                            repositories.userSession.getCurrentUser()
+
+                        val selectedDate =
+                            todayViewModel
+                                .uiState
+                                .value
+                                .selectedDate
+
+                        repositories
+                            .todayOccurrenceService
+                            .renameItem(
+                                userId = user.id,
+                                item = item,
+                                newText = newText,
+                                currentDate = selectedDate
+                            )
+
                         todayViewModel.refreshSelectedDate()
                     }
                 },
 
                 onDeleteItem = { item ->
+
                     selectedItem = null
                     selectedListItem = null
                     itemToDelete = item
-                    coroutineScope.launch {
-                        val selectedDate = todayViewModel.uiState.value.selectedDate
-                        val userId = repositories.userRepository.getCurrentUser()?.id ?: return@launch
-                        val todayItems = repositories.todayRepository.getItemsForDate(userId, selectedDate)
-                        val matchingTodayItem = todayItems.firstOrNull { it.id == item.todayItemId }
-                            ?: item.todayItemId?.let { repositories.todayRepository.getItemById(it) }
 
-                        selectedTodayItem = matchingTodayItem
-                        everyDayEnabled = matchingTodayItem != null && matchingTodayItem.activeUntil == null
+                    coroutineScope.launch {
+
+                        val selectedDate =
+                            todayViewModel
+                                .uiState
+                                .value
+                                .selectedDate
+
+                        val userId =
+                            repositories
+                                .userRepository
+                                .getCurrentUser()
+                                ?.id
+                                ?: return@launch
+
+                        val todayItems =
+                            repositories
+                                .todayRepository
+                                .getItemsForDate(
+                                    userId,
+                                    selectedDate
+                                )
+
+                        val matchingTodayItem =
+                            todayItems.firstOrNull {
+                                it.id == item.todayItemId
+                            }
+                                ?: item.todayItemId?.let {
+                                    repositories
+                                        .todayRepository
+                                        .getItemById(it)
+                                }
+
+                        selectedTodayItem =
+                            matchingTodayItem
+
+                        everyDayEnabled =
+                            matchingTodayItem != null &&
+                                    matchingTodayItem.activeUntil == null
 
                         if (everyDayEnabled) {
+
                             showScopeSheet = true
+
                         } else {
+
                             showDeleteItemConfirmDialog = true
                         }
+                    }
+                }
+            )
+        }
+    }
+
+    /*
+     * =========================================================
+     * REMOVE ITEM SCOPE SHEET
+     * =========================================================
+     */
+
+    if (showScopeSheet) {
+
+        val activeItem =
+            itemToDelete ?: selectedItem
+
+        if (activeItem != null) {
+
+            ModalBottomSheet(
+
+                onDismissRequest = {
+
+                    showScopeSheet = false
+                    itemToDelete = null
+                },
+
+                containerColor = DinamColors.Surface
+            ) {
+
+                ScopeSheet(
+
+                    itemTitle = activeItem.text,
+
+                    onJustToday = {
+
+                        val todayItem =
+                            selectedTodayItem
+
+                        val selectedDate =
+                            todayViewModel
+                                .uiState
+                                .value
+                                .selectedDate
+
+                        coroutineScope.launch {
+
+                            repositories
+                                .todayOccurrenceService
+                                .removeJustToday(
+
+                                    userId =
+                                        todayItem?.userId
+                                            ?: repositories
+                                                .userSession
+                                                .getCurrentUser()
+                                                .id,
+
+                                    todayItemId =
+                                        activeItem.todayItemId
+                                            ?: activeItem.id,
+
+                                    periodDate =
+                                        selectedDate
+                                )
+
+                            showScopeSheet = false
+                            itemToDelete = null
+                            selectedItem = null
+                            selectedTodayItem = null
+                            editedItemTime = null
+                            everyDayEnabled = false
+
+                            todayViewModel.refreshSelectedDate()
+                        }
+                    },
+
+                    onTodayAndFuture = {
+
+                        val todayItem =
+                            selectedTodayItem
+
+                        val selectedDate =
+                            todayViewModel
+                                .uiState
+                                .value
+                                .selectedDate
+
+                        if (todayItem != null) {
+
+                            coroutineScope.launch {
+
+                                repositories
+                                    .todayOccurrenceService
+                                    .removeTodayAndFuture(
+
+                                        userId =
+                                            todayItem.userId,
+
+                                        todayItemId =
+                                            todayItem.id,
+
+                                        periodDate =
+                                            selectedDate
+                                    )
+
+                                showScopeSheet = false
+                                itemToDelete = null
+                                selectedItem = null
+                                selectedTodayItem = null
+                                editedItemTime = null
+                                everyDayEnabled = false
+
+                                todayViewModel.refreshSelectedDate()
+                            }
+
+                        } else {
+
+                            showScopeSheet = false
+                            itemToDelete = null
+                        }
+                    },
+
+                    onCancel = {
+
+                        showScopeSheet = false
+                        itemToDelete = null
+                    }
+                )
+            }
+        }
+    }
+
+    /*
+     * =========================================================
+     * DELETE ONE-TIME ITEM CONFIRM DIALOG
+     * =========================================================
+     */
+
+    if (showDeleteItemConfirmDialog) {
+
+        val activeItem =
+            itemToDelete ?: selectedItem
+
+        if (activeItem != null) {
+
+            AlertDialog(
+
+                onDismissRequest = {
+
+                    showDeleteItemConfirmDialog = false
+                    itemToDelete = null
+                },
+
+                title = {
+
+                    Text(
+                        text = "Delete item",
+                        color = DinamColors.TextTitle
+                    )
+                },
+
+                text = {
+
+                    Text(
+                        text =
+                            "Are you sure you want to delete \"${activeItem.text}\"?",
+                        color = DinamColors.TextPrimary
+                    )
+                },
+
+                confirmButton = {
+
+                    Button(
+
+                        onClick = {
+
+                            val todayItem =
+                                selectedTodayItem
+
+                            val selectedDate =
+                                todayViewModel
+                                    .uiState
+                                    .value
+                                    .selectedDate
+
+                            coroutineScope.launch {
+
+                                repositories
+                                    .todayOccurrenceService
+                                    .removeJustToday(
+
+                                        userId =
+                                            todayItem?.userId
+                                                ?: repositories
+                                                    .userSession
+                                                    .getCurrentUser()
+                                                    .id,
+
+                                        todayItemId =
+                                            activeItem.todayItemId
+                                                ?: activeItem.id,
+
+                                        periodDate =
+                                            selectedDate
+                                    )
+
+                                showDeleteItemConfirmDialog = false
+                                itemToDelete = null
+                                selectedItem = null
+                                selectedTodayItem = null
+                                editedItemTime = null
+                                everyDayEnabled = false
+
+                                todayViewModel.refreshSelectedDate()
+                            }
+                        }
+                    ) {
+
+                        Text(
+                            text = "Delete"
+                        )
+                    }
+                },
+
+                dismissButton = {
+
+                    TextButton(
+
+                        onClick = {
+
+                            showDeleteItemConfirmDialog = false
+                            itemToDelete = null
+                        }
+                    ) {
+
+                        Text(
+                            text = "Cancel"
+                        )
                     }
                 }
             )
