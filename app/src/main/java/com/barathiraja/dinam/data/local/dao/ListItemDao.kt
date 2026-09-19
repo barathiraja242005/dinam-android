@@ -1,6 +1,7 @@
 package com.barathiraja.dinam.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
@@ -32,6 +33,11 @@ interface ListItemDao {
 
     @Update
     suspend fun update(
+        item: ListItemEntity
+    )
+
+    @Delete
+    suspend fun delete(
         item: ListItemEntity
     )
 }

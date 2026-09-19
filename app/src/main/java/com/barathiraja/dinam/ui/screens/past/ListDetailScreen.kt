@@ -32,19 +32,19 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.barathiraja.dinam.data.local.entity.ListEntity
-import com.barathiraja.dinam.data.local.entity.ListItemEntity
+import com.barathiraja.dinam.domain.model.DinamList
+import com.barathiraja.dinam.domain.model.ListItem
 import com.barathiraja.dinam.ui.components.home.CheckmarkBox
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamDimensions
 
 @Composable
 fun ListDetailScreen(
-    list: ListEntity,
-    items: List<ListItemEntity>,
+    list: DinamList,
+    items: List<ListItem>,
     onBack: () -> Unit,
     onItemCheckedChange: (
-        item: ListItemEntity,
+        item: ListItem,
         checked: Boolean
     ) -> Unit,
     onAddFromYourLists: () -> Unit,
@@ -311,7 +311,7 @@ fun ListDetailScreen(
 
 @Composable
 private fun ListDetailItemRow(
-    item: ListItemEntity,
+    item: ListItem,
     onCheckedChange: (Boolean) -> Unit
 ) {
 

@@ -1,24 +1,25 @@
 package com.barathiraja.dinam.data.session
 
-import com.barathiraja.dinam.data.local.entity.UserEntity
-import com.barathiraja.dinam.data.repository.UserRepository
-import java.util.UUID
+import com.barathiraja.dinam.domain.model.User
+import com.barathiraja.dinam.domain.repository.UserRepository
+import com.barathiraja.dinam.domain.util.IdGenerator
 
 class UserSession(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val idGenerator: IdGenerator = IdGenerator.Default
 ) {
 
-    suspend fun getCurrentUser(): UserEntity {
-        return userRepository.getUser()
+    suspend fun getCurrentUser(): User {
+        return userRepository.getCurrentUser()
             ?: createUser()
     }
 
-    private suspend fun createUser(): UserEntity {
-        val user = UserEntity(
-            id = UUID.randomUUID().toString()
+    private suspend fun createUser(): User {
+        val user = User(
+            id = idGenerator.generateId()
         )
 
-        userRepository.createUser(user)
+        userRepository.insertUser(user)
 
         return user
     }

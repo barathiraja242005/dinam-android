@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,8 +38,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.barathiraja.dinam.data.local.entity.ListEntity
-import com.barathiraja.dinam.data.local.entity.OccurrenceItemEntity
+import com.barathiraja.dinam.domain.model.DinamList
+import com.barathiraja.dinam.domain.model.OccurrenceItem
+import com.barathiraja.dinam.domain.util.DateProvider
 import com.barathiraja.dinam.ui.components.home.TodoRow
 import com.barathiraja.dinam.ui.screens.today.TodayViewModel
 import com.barathiraja.dinam.ui.theme.DinamColors
@@ -52,9 +54,15 @@ fun HomeScreen(
     homeViewModel: HomeViewModel,
     todayViewModel: TodayViewModel,
     onOpenToday: () -> Unit,
-    onOpenList: (ListEntity) -> Unit,
+    onOpenList: (DinamList) -> Unit,
     onCreateList: () -> Unit
 ) {
+
+    LaunchedEffect(Unit) {
+        todayViewModel.selectDate(
+            DateProvider.todayString()
+        )
+    }
 
     val uiState by homeViewModel.uiState.collectAsState()
 
@@ -70,7 +78,7 @@ fun HomeScreen(
 
     val todayDateText =
         formatHomeDate(
-            todayState.selectedDate
+            DateProvider.todayString()
         )
 
     var itemText by remember {
@@ -360,7 +368,7 @@ fun HomeScreen(
 
 @Composable
 private fun ChecklistRow(
-    list: ListEntity,
+    list: DinamList,
     onClick: () -> Unit
 ) {
 
@@ -399,7 +407,7 @@ private fun ChecklistRow(
     }
 }
 
-private fun OccurrenceItemEntity.toTodoItem():
+private fun OccurrenceItem.toTodoItem():
         com.barathiraja.dinam.data.model.TodoItem {
 
     return com.barathiraja.dinam.data.model.TodoItem(

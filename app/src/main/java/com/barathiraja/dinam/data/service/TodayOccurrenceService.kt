@@ -1,67 +1,51 @@
+@file:Suppress("NewApi")
+
 package com.barathiraja.dinam.data.service
 
-import com.barathiraja.dinam.data.local.entity.OccurrenceEntity
-import com.barathiraja.dinam.data.local.entity.OccurrenceItemEntity
-import com.barathiraja.dinam.data.local.entity.TodayItemEntity
-import com.barathiraja.dinam.data.repository.OccurrenceItemRepository
-import com.barathiraja.dinam.data.repository.OccurrenceRepository
-import com.barathiraja.dinam.data.repository.TodayRepository
+import com.barathiraja.dinam.domain.model.Occurrence
+import com.barathiraja.dinam.domain.model.OccurrenceItem
+import com.barathiraja.dinam.domain.model.TodayItem
+import com.barathiraja.dinam.domain.repository.OccurrenceItemRepository
+import com.barathiraja.dinam.domain.repository.OccurrenceRepository
+import com.barathiraja.dinam.domain.repository.TodayRepository
+import com.barathiraja.dinam.domain.util.IdGenerator
 import java.time.LocalDate
-import java.util.UUID
 
 class TodayOccurrenceService(
     private val occurrenceRepository: OccurrenceRepository,
     private val occurrenceItemRepository: OccurrenceItemRepository,
-    private val todayRepository: TodayRepository
+    private val todayRepository: TodayRepository,
+    private val idGenerator: IdGenerator = IdGenerator.Default
 ) {
 
     suspend fun getOrCreateOccurrence(
         userId: String,
         periodDate: String
-    ): OccurrenceEntity {
+    ): Occurrence {
 
         val existingOccurrence =
-            occurrenceRepository.getOccurrenceForDate(
+            occurrenceRepository.getByPeriodDate(
                 userId = userId,
                 periodDate = periodDate
             )
 
         if (existingOccurrence != null) {
-            /*
-             * Existing occurrences are already frozen.
-             *
-             * We must NEVER rebuild them from the current
-             * routine definitions because that could change
-             * historical/frozen data.
-             */
             return existingOccurrence
         }
 
-        val occurrence = OccurrenceEntity(
-            id = UUID.randomUUID().toString(),
+        val occurrence = Occurrence(
+            id = idGenerator.generateId(),
             userId = userId,
             periodDate = periodDate,
             createdAt = System.currentTimeMillis()
         )
 
-        occurrenceRepository.createOccurrence(
-            occurrence
-        )
+        occurrenceRepository.insert(occurrence)
 
-        /*
-         * Past dates must remain empty when there is no
-         * previously stored occurrence.
-         *
-         * We never populate history from today's routines.
-         */
         if (isPastDate(periodDate)) {
             return occurrence
         }
 
-        /*
-         * Today and future occurrences are generated lazily
-         * from the active routine definitions.
-         */
         materializeActiveRoutineItems(
             userId = userId,
             periodDate = periodDate,
@@ -73,8 +57,7 @@ class TodayOccurrenceService(
 
     suspend fun getOccurrenceItems(
         occurrenceId: String
-    ): List<OccurrenceItemEntity> {
-
+    ): List<OccurrenceItem> {
         return occurrenceItemRepository.getItemsForOccurrence(
             occurrenceId = occurrenceId
         )
@@ -83,12 +66,8 @@ class TodayOccurrenceService(
     suspend fun addTodayItem(
         userId: String,
         periodDate: String,
-        item: TodayItemEntity
+        item: TodayItem
     ) {
-
-        /*
-         * A past date can never be modified.
-         */
         if (isPastDate(periodDate)) {
             return
         }
@@ -99,23 +78,15 @@ class TodayOccurrenceService(
                 periodDate = periodDate
             )
 
-        /*
-         * Store the live routine definition.
-         */
-        todayRepository.insertItem(
-            item
-        )
+        todayRepository.insertItem(item)
 
-        /*
-         * Add the frozen copy to the current occurrence.
-         */
         val existingOccurrenceItems =
             occurrenceItemRepository.getItemsForOccurrence(
                 occurrenceId = occurrence.id
             )
 
-        val occurrenceItem = OccurrenceItemEntity(
-            id = UUID.randomUUID().toString(),
+        val occurrenceItem = OccurrenceItem(
+            id = idGenerator.generateId(),
             occurrenceId = occurrence.id,
             todayItemId = item.id,
             origin = "routine",
@@ -134,86 +105,54 @@ class TodayOccurrenceService(
 
     suspend fun setEveryDay(
         userId: String,
-        item: TodayItemEntity,
-        enabled: Boolean
+        item: TodayItem,
+        enabled: Boolean,
+        periodDate: String = item.activeFrom
     ) {
 
-        val today = LocalDate.now()
-        val todayString = today.toString()
-
-        /*
-         * Every day ON:
-         *
-         * The item becomes active from its original start date
-         * through all future dates.
-         *
-         * Every day OFF:
-         *
-         * The item remains active for today only.
-         */
         val updatedItem =
             if (enabled) {
                 item.copy(
                     activeFrom = minDate(
                         item.activeFrom,
-                        todayString
+                        periodDate
                     ),
                     activeUntil = null
                 )
             } else {
                 item.copy(
-                    activeUntil = todayString
+                    activeUntil = periodDate
                 )
             }
 
-        todayRepository.updateItem(
-            updatedItem
-        )
+        todayRepository.updateItem(updatedItem)
 
         if (enabled) {
-
             addToExistingFutureOccurrences(
                 userId = userId,
-                today = today,
+                fromDate = periodDate,
                 item = updatedItem
             )
-
         } else {
-
             removeFromFutureOccurrences(
                 userId = userId,
-                today = today,
+                fromDate = periodDate,
                 todayItemId = item.id
             )
         }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * REMOVE — JUST TODAY
-     * ---------------------------------------------------------
-     *
-     * Removes the item from today's frozen occurrence only.
-     *
-     * The live TodayItemEntity is deliberately untouched.
-     * Therefore the routine remains available for tomorrow
-     * and future dates.
-     */
     suspend fun removeJustToday(
         userId: String,
         todayItemId: String,
         periodDate: String
     ) {
-
-        /*
-         * This action is valid only for today.
-         */
         if (isPastDate(periodDate)) {
             return
         }
 
         val occurrence =
-            occurrenceRepository.getOccurrenceForDate(
+            occurrenceRepository.getByPeriodDate(
                 userId = userId,
                 periodDate = periodDate
             )
@@ -230,38 +169,19 @@ class TodayOccurrenceService(
                         occurrenceItem.todayItemId == todayItemId
             }
             .forEach { occurrenceItem ->
-                occurrenceItemRepository.deleteItem(
-                    occurrenceItem
-                )
+                occurrenceItemRepository.deleteItem(occurrenceItem)
             }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * REMOVE — TODAY AND FUTURE
-     * ---------------------------------------------------------
-     *
-     * Ends the live routine today and removes its frozen copies
-     * from today and every existing future occurrence.
-     *
-     * Past occurrences are never touched.
-     */
     suspend fun removeTodayAndFuture(
         userId: String,
         todayItemId: String,
         periodDate: String
     ) {
-
         if (isPastDate(periodDate)) {
             return
         }
 
-        /*
-         * First end the live routine today.
-         *
-         * This prevents the item from being generated again
-         * when a new future occurrence is created.
-         */
         val activeItems =
             todayRepository.getItemsForDate(
                 userId = userId,
@@ -281,10 +201,6 @@ class TodayOccurrenceService(
             )
         }
 
-        /*
-         * Remove the item from today and all existing future
-         * occurrences.
-         */
         val occurrences =
             occurrenceRepository.getOccurrencesFromDate(
                 userId = userId,
@@ -292,7 +208,6 @@ class TodayOccurrenceService(
             )
 
         occurrences.forEach { occurrence ->
-
             val occurrenceItems =
                 occurrenceItemRepository.getItemsForOccurrence(
                     occurrenceId = occurrence.id
@@ -304,18 +219,15 @@ class TodayOccurrenceService(
                             occurrenceItem.todayItemId == todayItemId
                 }
                 .forEach { occurrenceItem ->
-                    occurrenceItemRepository.deleteItem(
-                        occurrenceItem
-                    )
+                    occurrenceItemRepository.deleteItem(occurrenceItem)
                 }
         }
     }
 
     suspend fun setOccurrenceItemChecked(
-        item: OccurrenceItemEntity,
+        item: OccurrenceItem,
         checked: Boolean
     ) {
-
         val updatedItem =
             item.copy(
                 checked = checked,
@@ -326,17 +238,14 @@ class TodayOccurrenceService(
                 }
             )
 
-        occurrenceItemRepository.updateItem(
-            updatedItem
-        )
+        occurrenceItemRepository.updateItem(updatedItem)
     }
 
     private suspend fun materializeActiveRoutineItems(
         userId: String,
         periodDate: String,
-        occurrence: OccurrenceEntity
+        occurrence: Occurrence
     ) {
-
         val todayItems =
             todayRepository.getItemsForDate(
                 userId = userId,
@@ -359,9 +268,8 @@ class TodayOccurrenceService(
                     todayItem.id !in existingTodayItemIds
                 }
                 .mapIndexed { index, todayItem ->
-
-                    OccurrenceItemEntity(
-                        id = UUID.randomUUID().toString(),
+                    OccurrenceItem(
+                        id = idGenerator.generateId(),
                         occurrenceId = occurrence.id,
                         todayItemId = todayItem.id,
                         origin = "routine",
@@ -375,28 +283,25 @@ class TodayOccurrenceService(
                 }
 
         if (occurrenceItems.isNotEmpty()) {
-            occurrenceItemRepository.insertItems(
-                occurrenceItems
-            )
+            occurrenceItemRepository.insertItems(occurrenceItems)
         }
     }
 
     private suspend fun addToExistingFutureOccurrences(
         userId: String,
-        today: LocalDate,
-        item: TodayItemEntity
+        fromDate: String,
+        item: TodayItem
     ) {
-
-        val futureStartDate =
-            today.plusDays(1).toString()
-
         val futureOccurrences =
             occurrenceRepository.getOccurrencesFromDate(
                 userId = userId,
-                fromDate = futureStartDate
+                fromDate = fromDate
             )
 
         futureOccurrences.forEach { occurrence ->
+            if (occurrence.periodDate == item.activeFrom) {
+                return@forEach
+            }
 
             if (isPastDate(occurrence.periodDate)) {
                 return@forEach
@@ -417,8 +322,8 @@ class TodayOccurrenceService(
             }
 
             val occurrenceItem =
-                OccurrenceItemEntity(
-                    id = UUID.randomUUID().toString(),
+                OccurrenceItem(
+                    id = idGenerator.generateId(),
                     occurrenceId = occurrence.id,
                     todayItemId = item.id,
                     origin = "routine",
@@ -438,20 +343,19 @@ class TodayOccurrenceService(
 
     private suspend fun removeFromFutureOccurrences(
         userId: String,
-        today: LocalDate,
+        fromDate: String,
         todayItemId: String
     ) {
-
-        val futureStartDate =
-            today.plusDays(1).toString()
-
         val futureOccurrences =
             occurrenceRepository.getOccurrencesFromDate(
                 userId = userId,
-                fromDate = futureStartDate
+                fromDate = fromDate
             )
 
         futureOccurrences.forEach { occurrence ->
+            if (occurrence.periodDate == fromDate) {
+                return@forEach
+            }
 
             val items =
                 occurrenceItemRepository.getItemsForOccurrence(
@@ -464,9 +368,7 @@ class TodayOccurrenceService(
                             occurrenceItem.todayItemId == todayItemId
                 }
                 .forEach { occurrenceItem ->
-                    occurrenceItemRepository.deleteItem(
-                        occurrenceItem
-                    )
+                    occurrenceItemRepository.deleteItem(occurrenceItem)
                 }
         }
     }
@@ -475,23 +377,15 @@ class TodayOccurrenceService(
         first: String,
         second: String
     ): String {
-
         return try {
-
-            val firstDate =
-                LocalDate.parse(first)
-
-            val secondDate =
-                LocalDate.parse(second)
-
+            val firstDate = LocalDate.parse(first)
+            val secondDate = LocalDate.parse(second)
             if (firstDate.isBefore(secondDate)) {
                 first
             } else {
                 second
             }
-
         } catch (_: Exception) {
-
             second
         }
     }
@@ -499,16 +393,9 @@ class TodayOccurrenceService(
     private fun isPastDate(
         periodDate: String
     ): Boolean {
-
         return try {
-
-            LocalDate.parse(periodDate)
-                .isBefore(
-                    LocalDate.now()
-                )
-
+            LocalDate.parse(periodDate).isBefore(LocalDate.now())
         } catch (_: Exception) {
-
             false
         }
     }

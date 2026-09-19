@@ -19,10 +19,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModelProvider
-import com.barathiraja.dinam.data.local.entity.ListEntity
-import com.barathiraja.dinam.data.local.entity.ListItemEntity
-import com.barathiraja.dinam.data.local.entity.OccurrenceItemEntity
-import com.barathiraja.dinam.data.local.entity.TodayItemEntity
+import com.barathiraja.dinam.domain.model.DinamList
+import com.barathiraja.dinam.domain.model.ListItem
+import com.barathiraja.dinam.domain.model.OccurrenceItem
+import com.barathiraja.dinam.domain.model.TodayItem
+import com.barathiraja.dinam.domain.util.DateProvider
 import com.barathiraja.dinam.data.repository.Repositories
 import com.barathiraja.dinam.ui.screens.home.HomeScreen
 import com.barathiraja.dinam.ui.screens.home.HomeViewModel
@@ -125,11 +126,11 @@ private fun DinamApp(
     }
 
     var selectedItem by remember {
-        mutableStateOf<OccurrenceItemEntity?>(null)
+        mutableStateOf<OccurrenceItem?>(null)
     }
 
     var selectedTodayItem by remember {
-        mutableStateOf<TodayItemEntity?>(null)
+        mutableStateOf<TodayItem?>(null)
     }
 
     var everyDayEnabled by remember {
@@ -149,11 +150,11 @@ private fun DinamApp(
     }
 
     var selectedList by remember {
-        mutableStateOf<ListEntity?>(null)
+        mutableStateOf<DinamList?>(null)
     }
 
     var selectedListItems by remember {
-        mutableStateOf<List<ListItemEntity>>(
+        mutableStateOf<List<ListItem>>(
             emptyList()
         )
     }
@@ -207,14 +208,21 @@ private fun DinamApp(
 
                         coroutineScope.launch {
 
+                            val selectedDate =
+                                todayViewModel.uiState.value
+                                    .selectedDate
+
                             repositories
                                 .todayOccurrenceService
                                 .setEveryDay(
                                     userId =
                                         todayItem.userId,
                                     item = todayItem,
-                                    enabled = enabled
+                                    enabled = enabled,
+                                    periodDate = selectedDate
                                 )
+
+                            todayViewModel.refreshSelectedDate()
                         }
                     }
                 },
@@ -285,6 +293,10 @@ private fun DinamApp(
                             val todayItem =
                                 selectedTodayItem
 
+                            val selectedDate =
+                                todayViewModel.uiState.value
+                                    .selectedDate
+
                             if (todayItem != null) {
 
                                 coroutineScope.launch {
@@ -297,8 +309,7 @@ private fun DinamApp(
                                             todayItemId =
                                                 todayItem.id,
                                             periodDate =
-                                                LocalDate.now()
-                                                    .toString()
+                                                selectedDate
                                         )
 
                                     showScopeSheet = false
@@ -320,6 +331,10 @@ private fun DinamApp(
                             val todayItem =
                                 selectedTodayItem
 
+                            val selectedDate =
+                                todayViewModel.uiState.value
+                                    .selectedDate
+
                             if (todayItem != null) {
 
                                 coroutineScope.launch {
@@ -332,8 +347,7 @@ private fun DinamApp(
                                             todayItemId =
                                                 todayItem.id,
                                             periodDate =
-                                                LocalDate.now()
-                                                    .toString()
+                                                selectedDate
                                         )
 
                                     showScopeSheet = false
@@ -525,7 +539,7 @@ private fun DinamApp(
                                 .getCurrentUser()
 
                         val newList =
-                            ListEntity(
+                            DinamList(
                                 id =
                                     UUID.randomUUID()
                                         .toString(),
@@ -570,6 +584,9 @@ private fun DinamApp(
                 todayViewModel = todayViewModel,
 
                 onBack = {
+                    todayViewModel.selectDate(
+                        DateProvider.todayString()
+                    )
                     showToday = false
                 },
 
@@ -580,29 +597,32 @@ private fun DinamApp(
 
                     coroutineScope.launch {
 
+                        val selectedDate =
+                            todayViewModel.uiState.value
+                                .selectedDate
+
+                        val userId =
+                            repositories
+                                .userRepository
+                                .getCurrentUser()
+                                ?.id
+                                ?: return@launch
+
                         val todayItems =
                             repositories
                                 .todayRepository
                                 .getItemsForDate(
-                                    userId =
-                                        item.todayItemId
-                                            ?.let {
-                                                repositories
-                                                    .userRepository
-                                                    .getUser()
-                                                    ?.id
-                                            }
-                                            ?: return@launch,
-                                    periodDate =
-                                        LocalDate.now()
-                                            .toString()
+                                    userId = userId,
+                                    periodDate = selectedDate
                                 )
 
                         val matchingTodayItem =
                             todayItems.firstOrNull {
-                                it.id ==
-                                        item.todayItemId
+                                it.id == item.todayItemId
                             }
+                                ?: item.todayItemId?.let {
+                                    repositories.todayRepository.getItemById(it)
+                                }
 
                         selectedTodayItem =
                             matchingTodayItem

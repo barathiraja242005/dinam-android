@@ -1,6 +1,7 @@
 package com.barathiraja.dinam.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import com.barathiraja.dinam.data.local.entity.OccurrenceEntity
@@ -21,6 +22,9 @@ interface OccurrenceDao {
         periodDate: String
     ): OccurrenceEntity?
 
+    @Query("SELECT * FROM occurrence WHERE id = :id LIMIT 1")
+    suspend fun getById(id: String): OccurrenceEntity?
+
     @Query(
         """
         SELECT * FROM occurrence
@@ -36,6 +40,11 @@ interface OccurrenceDao {
 
     @Insert
     suspend fun insert(
+        occurrence: OccurrenceEntity
+    )
+
+    @Delete
+    suspend fun delete(
         occurrence: OccurrenceEntity
     )
 }

@@ -3,27 +3,28 @@ package com.barathiraja.dinam.ui.screens.today
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.barathiraja.dinam.data.local.entity.OccurrenceItemEntity
-import com.barathiraja.dinam.data.local.entity.TodayItemEntity
 import com.barathiraja.dinam.data.service.TodayOccurrenceService
 import com.barathiraja.dinam.data.session.UserSession
+import com.barathiraja.dinam.domain.model.OccurrenceItem
+import com.barathiraja.dinam.domain.model.TodayItem
 import com.barathiraja.dinam.domain.util.Canonicalizer
 import com.barathiraja.dinam.domain.util.DateProvider
+import com.barathiraja.dinam.domain.util.IdGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 data class TodayUiState(
     val selectedDate: String = currentLocalDate(),
-    val items: List<OccurrenceItemEntity> = emptyList(),
+    val items: List<OccurrenceItem> = emptyList(),
     val isLoading: Boolean = true
 )
 
 class TodayViewModel(
     private val todayOccurrenceService: TodayOccurrenceService,
-    private val userSession: UserSession
+    private val userSession: UserSession,
+    private val idGenerator: IdGenerator = IdGenerator.Default
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -51,15 +52,6 @@ class TodayViewModel(
         )
     }
 
-    /*
-     * Explicitly reloads the currently selected date.
-     *
-     * This is different from selectDate(), because selectDate()
-     * intentionally does nothing when the same date is selected.
-     *
-     * We use this after an action changes the occurrence without
-     * changing the selected date, such as "Just today".
-     */
     fun refreshSelectedDate() {
         loadItemsForDate(
             periodDate = _uiState.value.selectedDate
@@ -100,7 +92,8 @@ class TodayViewModel(
 
     fun addItem(
         text: String,
-        remindAt: String?
+        remindAt: String?,
+        everyday: Boolean = false
     ) {
 
         val trimmedText = text.trim()
@@ -116,14 +109,8 @@ class TodayViewModel(
             val periodDate =
                 _uiState.value.selectedDate
 
-            /*
-             * New items are one-day items by default.
-             *
-             * Every day is therefore OFF until the user
-             * explicitly enables it from Item Detail.
-             */
-            val item = TodayItemEntity(
-                id = UUID.randomUUID().toString(),
+            val item = TodayItem(
+                id = idGenerator.generateId(),
                 userId = user.id,
                 text = trimmedText,
                 canonicalId =
@@ -134,7 +121,7 @@ class TodayViewModel(
                 skipIfComplete = false,
                 position = _uiState.value.items.size,
                 activeFrom = periodDate,
-                activeUntil = periodDate
+                activeUntil = if (everyday) null else periodDate
             )
 
             todayOccurrenceService.addTodayItem(
@@ -150,7 +137,7 @@ class TodayViewModel(
     }
 
     fun setItemChecked(
-        item: OccurrenceItemEntity,
+        item: OccurrenceItem,
         checked: Boolean
     ) {
         viewModelScope.launch {
@@ -160,13 +147,6 @@ class TodayViewModel(
                 checked = checked
             )
 
-            /*
-             * Update only the item that was checked.
-             *
-             * We intentionally do NOT reload the occurrence
-             * here. This prevents the whole page from visibly
-             * refreshing when the checkbox is tapped.
-             */
             val updatedItem = item.copy(
                 checked = checked,
                 checkedAt = if (checked) {

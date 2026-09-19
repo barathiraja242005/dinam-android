@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.barathiraja.dinam.data.local.entity.OccurrenceItemEntity
+import com.barathiraja.dinam.domain.model.OccurrenceItem
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamDimensions
 import java.time.LocalDate
@@ -31,10 +31,10 @@ import java.util.Locale
 @Composable
 fun PastOccurrenceScreen(
     selectedDate: LocalDate,
-    items: List<OccurrenceItemEntity>,
+    items: List<OccurrenceItem>,
     onBack: () -> Unit,
     onItemCheckedChange: (
-        item: OccurrenceItemEntity,
+        item: OccurrenceItem,
         checked: Boolean
     ) -> Unit
 ) {
@@ -99,7 +99,7 @@ fun PastOccurrenceScreen(
 
 @Composable
 private fun PastOccurrenceRow(
-    item: OccurrenceItemEntity,
+    item: OccurrenceItem,
     onCheckedChange: (Boolean) -> Unit
 ) {
 

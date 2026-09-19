@@ -30,9 +30,20 @@ interface TodayItemDao {
         periodDate: String
     ): List<TodayItemEntity>
 
+    @Query("SELECT * FROM today_item WHERE id = :id LIMIT 1")
+    suspend fun getById(id: String): TodayItemEntity?
+
+    @Query("SELECT * FROM today_item")
+    suspend fun getAll(): List<TodayItemEntity>
+
     @Insert
     suspend fun insert(
         item: TodayItemEntity
+    )
+
+    @Insert
+    suspend fun insertAll(
+        items: List<TodayItemEntity>
     )
 
     @Update

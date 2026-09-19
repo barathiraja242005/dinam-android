@@ -3,16 +3,16 @@ package com.barathiraja.dinam.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.barathiraja.dinam.data.local.entity.ListEntity
-import com.barathiraja.dinam.data.repository.ListRepository
 import com.barathiraja.dinam.data.session.UserSession
+import com.barathiraja.dinam.domain.model.DinamList
+import com.barathiraja.dinam.domain.repository.ListRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class HomeUiState(
-    val lists: List<ListEntity> = emptyList(),
+    val lists: List<DinamList> = emptyList(),
     val isLoading: Boolean = true
 )
 

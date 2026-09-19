@@ -3,22 +3,23 @@ package com.barathiraja.dinam.ui.screens.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.barathiraja.dinam.data.local.entity.ListItemEntity
-import com.barathiraja.dinam.data.repository.ListItemRepository
+import com.barathiraja.dinam.domain.model.ListItem
+import com.barathiraja.dinam.domain.repository.ListItemRepository
 import com.barathiraja.dinam.domain.util.Canonicalizer
+import com.barathiraja.dinam.domain.util.IdGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 data class ListDetailUiState(
-    val items: List<ListItemEntity> = emptyList(),
+    val items: List<ListItem> = emptyList(),
     val isLoading: Boolean = false
 )
 
 class ListDetailViewModel(
-    private val listItemRepository: ListItemRepository
+    private val listItemRepository: ListItemRepository,
+    private val idGenerator: IdGenerator = IdGenerator.Default
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -52,7 +53,7 @@ class ListDetailViewModel(
     }
 
     fun setItemChecked(
-        item: ListItemEntity,
+        item: ListItem,
         checked: Boolean
     ) {
 
@@ -99,8 +100,8 @@ class ListDetailViewModel(
                 _uiState.value.items
 
             val item =
-                ListItemEntity(
-                    id = UUID.randomUUID().toString(),
+                ListItem(
+                    id = idGenerator.generateId(),
                     listId = listId,
                     text = trimmedText,
                     canonicalId =

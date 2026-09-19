@@ -4,13 +4,20 @@ import android.content.Context
 import com.barathiraja.dinam.data.local.provider.DinamDatabaseProvider
 import com.barathiraja.dinam.data.service.TodayOccurrenceService
 import com.barathiraja.dinam.data.session.UserSession
+import com.barathiraja.dinam.domain.repository.ItemStatRepository
+import com.barathiraja.dinam.domain.repository.ListItemRepository
+import com.barathiraja.dinam.domain.repository.ListRepository
+import com.barathiraja.dinam.domain.repository.OccurrenceItemRepository
+import com.barathiraja.dinam.domain.repository.OccurrenceRepository
+import com.barathiraja.dinam.domain.repository.TodayRepository
+import com.barathiraja.dinam.domain.repository.UserRepository
 
 object DinamRepositoryProvider {
 
     fun create(context: Context): Repositories {
         val database = DinamDatabaseProvider.getDatabase(context)
 
-        val userRepository = UserRepository(
+        val userRepository: UserRepository = UserRepositoryImpl(
             userDao = database.userDao()
         )
 
@@ -18,27 +25,27 @@ object DinamRepositoryProvider {
             userRepository = userRepository
         )
 
-        val todayRepository = TodayRepository(
+        val todayRepository: TodayRepository = TodayRepositoryImpl(
             todayItemDao = database.todayItemDao()
         )
 
-        val occurrenceRepository = OccurrenceRepository(
+        val occurrenceRepository: OccurrenceRepository = OccurrenceRepositoryImpl(
             occurrenceDao = database.occurrenceDao()
         )
 
-        val occurrenceItemRepository = OccurrenceItemRepository(
+        val occurrenceItemRepository: OccurrenceItemRepository = OccurrenceItemRepositoryImpl(
             occurrenceItemDao = database.occurrenceItemDao()
         )
 
-        val listRepository = ListRepository(
+        val listRepository: ListRepository = ListRepositoryImpl(
             listDao = database.listDao()
         )
 
-        val listItemRepository = ListItemRepository(
+        val listItemRepository: ListItemRepository = ListItemRepositoryImpl(
             listItemDao = database.listItemDao()
         )
 
-        val itemStatRepository = ItemStatRepository(
+        val itemStatRepository: ItemStatRepository = ItemStatRepositoryImpl(
             itemStatDao = database.itemStatDao()
         )
 
