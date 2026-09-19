@@ -55,7 +55,8 @@ fun HomeScreen(
     todayViewModel: TodayViewModel,
     onOpenToday: () -> Unit,
     onOpenList: (DinamList) -> Unit,
-    onCreateList: () -> Unit
+    onCreateList: () -> Unit,
+    onItemClick: (OccurrenceItem) -> Unit = {}
 ) {
 
     LaunchedEffect(Unit) {
@@ -238,6 +239,9 @@ fun HomeScreen(
                             item = item,
                             checked = !item.checked
                         )
+                    },
+                    onItemClick = {
+                        onItemClick(item)
                     }
                 )
             }

@@ -700,6 +700,49 @@ private fun DinamApp(
 
                 onCreateList = {
                     showNewList = true
+                },
+
+                onItemClick = { item ->
+
+                    selectedItem = item
+                    editedItemTime = item.remindAt
+
+                    coroutineScope.launch {
+
+                        val selectedDate =
+                            todayViewModel.uiState.value
+                                .selectedDate
+
+                        val userId =
+                            repositories
+                                .userRepository
+                                .getCurrentUser()
+                                ?.id
+                                ?: return@launch
+
+                        val todayItems =
+                            repositories
+                                .todayRepository
+                                .getItemsForDate(
+                                    userId = userId,
+                                    periodDate = selectedDate
+                                )
+
+                        val matchingTodayItem =
+                            todayItems.firstOrNull {
+                                it.id == item.todayItemId
+                            }
+                                ?: item.todayItemId?.let {
+                                    repositories.todayRepository.getItemById(it)
+                                }
+
+                        selectedTodayItem =
+                            matchingTodayItem
+
+                        everyDayEnabled =
+                            matchingTodayItem != null &&
+                                    matchingTodayItem.activeUntil == null
+                    }
                 }
             )
         }
