@@ -18,6 +18,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -255,17 +256,33 @@ fun RescheduleScreen(
      * DATE PICKER DIALOG
      */
     if (showDatePicker) {
+        val todayStartUtcMillis = remember {
+            DateProvider.today()
+                .atStartOfDay(ZoneId.of("UTC"))
+                .toInstant()
+                .toEpochMilli()
+        }
+
         val initialMillis = try {
             LocalDate.parse(selectedDate)
-                .atStartOfDay(ZoneId.systemDefault())
+                .atStartOfDay(ZoneId.of("UTC"))
                 .toInstant()
                 .toEpochMilli()
         } catch (_: Exception) {
-            System.currentTimeMillis()
+            null
         }
 
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = initialMillis
+            initialSelectedDateMillis = initialMillis ?: todayStartUtcMillis,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    return utcTimeMillis >= todayStartUtcMillis
+                }
+
+                override fun isSelectableYear(year: Int): Boolean {
+                    return year >= DateProvider.today().year
+                }
+            }
         )
 
         DatePickerDialog(

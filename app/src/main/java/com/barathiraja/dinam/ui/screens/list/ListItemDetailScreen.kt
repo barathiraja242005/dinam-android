@@ -17,11 +17,13 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
+import com.barathiraja.dinam.domain.util.DateProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -261,10 +263,17 @@ fun ListItemDetailScreen(
      * DATE PICKER DIALOG
      */
     if (showDatePicker) {
+        val todayStartUtcMillis = remember {
+            DateProvider.today()
+                .atStartOfDay(ZoneId.of("UTC"))
+                .toInstant()
+                .toEpochMilli()
+        }
+
         val initialMillis = try {
             selectedDate?.let {
                 LocalDate.parse(it)
-                    .atStartOfDay(ZoneId.systemDefault())
+                    .atStartOfDay(ZoneId.of("UTC"))
                     .toInstant()
                     .toEpochMilli()
             }
@@ -273,7 +282,16 @@ fun ListItemDetailScreen(
         }
 
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = initialMillis ?: System.currentTimeMillis()
+            initialSelectedDateMillis = initialMillis ?: todayStartUtcMillis,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    return utcTimeMillis >= todayStartUtcMillis
+                }
+
+                override fun isSelectableYear(year: Int): Boolean {
+                    return year >= DateProvider.today().year
+                }
+            }
         )
 
         DatePickerDialog(
