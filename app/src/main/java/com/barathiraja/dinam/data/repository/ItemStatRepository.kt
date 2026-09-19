@@ -1,1 +1,0 @@
-// Deprecated: Replaced by com.barathiraja.dinam.domain.repository.ItemStatRepository and ItemStatRepositoryImpl.kt

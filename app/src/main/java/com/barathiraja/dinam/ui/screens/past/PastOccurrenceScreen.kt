@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.barathiraja.dinam.domain.model.OccurrenceItem
+import com.barathiraja.dinam.ui.components.common.swipeToBack
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamDimensions
 import java.time.LocalDate
@@ -42,6 +43,9 @@ fun PastOccurrenceScreen(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .swipeToBack(
+                onBack = onBack
+            )
             .padding(
                 start = DinamDimensions.screenHorizontal,
                 end = DinamDimensions.screenHorizontal

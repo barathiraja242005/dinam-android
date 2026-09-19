@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.barathiraja.dinam.domain.model.DinamList
 import com.barathiraja.dinam.domain.model.ListItem
+import androidx.compose.foundation.layout.fillMaxSize
+import com.barathiraja.dinam.ui.components.common.swipeToBack
 import com.barathiraja.dinam.ui.components.home.CheckmarkBox
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamDimensions
@@ -88,9 +90,12 @@ fun ListDetailScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(
                 DinamColors.Surface
+            )
+            .swipeToBack(
+                onBack = onBack
             )
     ) {
 

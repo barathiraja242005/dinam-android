@@ -46,6 +46,7 @@ import com.barathiraja.dinam.data.model.TodoItem
 import com.barathiraja.dinam.domain.util.DateProvider
 import com.barathiraja.dinam.ui.components.common.ComposerChip
 import com.barathiraja.dinam.ui.components.common.DateItem
+import com.barathiraja.dinam.ui.components.common.swipeToBack
 import com.barathiraja.dinam.ui.components.home.TodoRow
 import com.barathiraja.dinam.ui.screens.past.PastOccurrenceScreen
 import com.barathiraja.dinam.ui.screens.time.TimePickerScreen
@@ -132,6 +133,9 @@ fun TodayScreen(
             .fillMaxSize()
             .background(
                 DinamColors.Surface
+            )
+            .swipeToBack(
+                onBack = onBack
             )
     ) {
 

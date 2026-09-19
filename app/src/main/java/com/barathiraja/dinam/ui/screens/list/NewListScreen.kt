@@ -24,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.fillMaxSize
+import com.barathiraja.dinam.ui.components.common.swipeToBack
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamDimensions
 
@@ -58,9 +60,12 @@ fun NewListScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(
                 DinamColors.Surface
+            )
+            .swipeToBack(
+                onBack = onBack
             )
             .padding(
                 start = DinamDimensions.screenHorizontal,

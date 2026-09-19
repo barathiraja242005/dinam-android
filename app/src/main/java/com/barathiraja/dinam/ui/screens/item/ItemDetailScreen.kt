@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.fillMaxSize
+import com.barathiraja.dinam.ui.components.common.swipeToBack
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamDimensions
 
@@ -33,9 +35,12 @@ fun ItemDetailScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(
                 DinamColors.Surface
+            )
+            .swipeToBack(
+                onBack = onBack
             )
     ) {
 
@@ -124,7 +129,7 @@ fun ItemDetailScreen(
             )
 
             Text(
-                text = itemTime ?: "No time",
+                text = itemTime ?: "Set time",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontSize = 18.sp
                 ),
