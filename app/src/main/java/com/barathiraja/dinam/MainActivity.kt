@@ -2,6 +2,7 @@ package com.barathiraja.dinam
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -179,6 +180,14 @@ private fun DinamApp(
          */
 
         selectedItem != null -> {
+
+            BackHandler {
+                selectedItem = null
+                selectedTodayItem = null
+                editedItemTime = null
+                everyDayEnabled = false
+                showScopeSheet = false
+            }
 
             ItemDetailScreen(
                 itemTitle = selectedItem!!.text,
@@ -381,6 +390,14 @@ private fun DinamApp(
 
         selectedList != null -> {
 
+            BackHandler {
+                selectedList = null
+                selectedListItems = emptyList()
+                showAddListItemDialog = false
+                newListItemText = ""
+                homeViewModel.loadLists()
+            }
+
             ListDetailScreen(
                 list = selectedList!!,
                 items = selectedListItems,
@@ -522,6 +539,10 @@ private fun DinamApp(
 
         showNewList -> {
 
+            BackHandler {
+                showNewList = false
+            }
+
             NewListScreen(
 
                 onBack = {
@@ -579,6 +600,13 @@ private fun DinamApp(
          */
 
         showToday -> {
+
+            BackHandler {
+                todayViewModel.selectDate(
+                    DateProvider.todayString()
+                )
+                showToday = false
+            }
 
             TodayScreen(
                 todayViewModel = todayViewModel,

@@ -1,39 +1,52 @@
 package com.barathiraja.dinam.ui.components.common
 
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 
 fun Modifier.swipeToBack(
     enabled: Boolean = true,
-    minSwipeDistance: Dp = 70.dp,
+    minSwipeDistance: Dp = 60.dp,
     onBack: () -> Unit
 ): Modifier = if (!enabled) this else Modifier.pointerInput(onBack) {
-    var totalDrag = 0f
     val minDistancePx = minSwipeDistance.toPx()
 
-    detectHorizontalDragGestures(
-        onDragStart = {
-            totalDrag = 0f
-        },
-        onDragEnd = {
-            if (totalDrag >= minDistancePx) {
-                onBack()
+    awaitEachGesture {
+        val down = awaitFirstDown(pass = PointerEventPass.Initial, requireUnconsumed = false)
+        var totalX = 0f
+        var totalY = 0f
+        var isBackGesture = false
+
+        while (true) {
+            val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+
+            if (!change.pressed) {
+                if (isBackGesture && totalX >= minDistancePx) {
+                    onBack()
+                }
+                break
             }
-            totalDrag = 0f
-        },
-        onDragCancel = {
-            totalDrag = 0f
-        },
-        onHorizontalDrag = { _, dragAmount ->
-            if (dragAmount > 0 || totalDrag > 0) {
-                totalDrag += dragAmount
-                if (totalDrag < 0f) {
-                    totalDrag = 0f
+
+            val drag = change.positionChange()
+            totalX += drag.x
+            totalY += drag.y
+
+            if (!isBackGesture) {
+                if (totalX > 20f && totalX > abs(totalY) * 1.2f) {
+                    isBackGesture = true
                 }
             }
+
+            if (isBackGesture) {
+                change.consume()
+            }
         }
-    )
+    }
 }
