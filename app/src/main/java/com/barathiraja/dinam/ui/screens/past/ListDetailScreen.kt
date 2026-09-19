@@ -15,7 +15,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
+import com.barathiraja.dinam.R
 import com.barathiraja.dinam.ui.components.common.SwipeableTaskRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -423,12 +427,12 @@ private fun ListDetailItemRow(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Text(
-                        text = "✓",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DinamColors.Primary,
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_edit),
+                        contentDescription = "Edit",
+                        tint = DinamColors.Primary,
                         modifier = Modifier
+                            .size(20.dp)
                             .clickable {
                                 keyboardController?.hide()
                                 val trimmed = editText.trim()
@@ -437,7 +441,6 @@ private fun ListDetailItemRow(
                                 }
                                 isEditing = false
                             }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 } else {
                     Column(
