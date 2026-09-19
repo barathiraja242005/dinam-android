@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.barathiraja.dinam.data.local.entity.ListItemEntity
 import com.barathiraja.dinam.data.repository.ListItemRepository
+import com.barathiraja.dinam.domain.util.Canonicalizer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -82,8 +83,7 @@ class ListDetailViewModel(
 
     fun addItem(
         listId: String,
-        text: String,
-        canonicalId: String
+        text: String
     ) {
 
         val trimmedText =
@@ -103,7 +103,10 @@ class ListDetailViewModel(
                     id = UUID.randomUUID().toString(),
                     listId = listId,
                     text = trimmedText,
-                    canonicalId = canonicalId,
+                    canonicalId =
+                        Canonicalizer.canonicalId(
+                            trimmedText
+                        ),
                     position = currentItems.size,
                     checked = false
                 )

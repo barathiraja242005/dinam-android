@@ -40,9 +40,7 @@ import com.barathiraja.dinam.ui.screens.today.TodayViewModelFactory
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamTheme
 import kotlinx.coroutines.launch
-import java.security.MessageDigest
 import java.time.LocalDate
-import java.util.Locale
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {
@@ -56,8 +54,8 @@ class MainActivity : ComponentActivity() {
             TodayViewModelFactory(
                 todayOccurrenceService =
                     repositories.todayOccurrenceService,
-                userRepository =
-                    repositories.userRepository
+                userSession =
+                    repositories.userSession
             )
         )[TodayViewModel::class.java]
     }
@@ -68,8 +66,8 @@ class MainActivity : ComponentActivity() {
             HomeViewModelFactory(
                 listRepository =
                     repositories.listRepository,
-                userRepository =
-                    repositories.userRepository
+                userSession =
+                    repositories.userSession
             )
         )[HomeViewModel::class.java]
     }
@@ -319,7 +317,8 @@ private fun DinamApp(
 
                         onTodayAndFuture = {
 
-                            val todayItem = selectedTodayItem
+                            val todayItem =
+                                selectedTodayItem
 
                             if (todayItem != null) {
 
@@ -328,9 +327,13 @@ private fun DinamApp(
                                     repositories
                                         .todayOccurrenceService
                                         .removeTodayAndFuture(
-                                            userId = todayItem.userId,
-                                            todayItemId = todayItem.id,
-                                            periodDate = LocalDate.now().toString()
+                                            userId =
+                                                todayItem.userId,
+                                            todayItemId =
+                                                todayItem.id,
+                                            periodDate =
+                                                LocalDate.now()
+                                                    .toString()
                                         )
 
                                     showScopeSheet = false
@@ -432,8 +435,9 @@ private fun DinamApp(
                             onValueChange = {
                                 newListItemText = it
                             },
-                            modifier = androidx.compose.ui.Modifier
-                                .fillMaxWidth(),
+                            modifier =
+                                androidx.compose.ui.Modifier
+                                    .fillMaxWidth(),
                             singleLine = true,
                             placeholder = {
                                 Text(
@@ -461,9 +465,7 @@ private fun DinamApp(
                                         listDetailViewModel.addItem(
                                             listId =
                                                 currentList.id,
-                                            text = text,
-                                            canonicalId =
-                                                canonicalId(text)
+                                            text = text
                                         )
                                     }
 
@@ -519,32 +521,8 @@ private fun DinamApp(
                     coroutineScope.launch {
 
                         val user =
-                            repositories.userRepository
-                                .getUser()
-
-                        val userEntity =
-                            if (user != null) {
-
-                                user
-
-                            } else {
-
-                                val newUser =
-                                    com.barathiraja.dinam
-                                        .data.local.entity
-                                        .UserEntity(
-                                            id =
-                                                UUID.randomUUID()
-                                                    .toString()
-                                        )
-
-                                repositories.userRepository
-                                    .createUser(
-                                        newUser
-                                    )
-
-                                newUser
-                            }
+                            repositories.userSession
+                                .getCurrentUser()
 
                         val newList =
                             ListEntity(
@@ -552,7 +530,7 @@ private fun DinamApp(
                                     UUID.randomUUID()
                                         .toString(),
                                 userId =
-                                    userEntity.id,
+                                    user.id,
                                 title = title,
                                 category = category,
                                 archivedAt = null,
@@ -677,34 +655,5 @@ private fun DinamApp(
                 }
             )
         }
-    }
-}
-
-private fun canonicalId(
-    text: String
-): String {
-
-    val normalized =
-        text
-            .lowercase(Locale.US)
-            .replace(
-                Regex("[^a-z0-9\\s]"),
-                " "
-            )
-            .replace(
-                Regex("\\s+"),
-                " "
-            )
-            .trim()
-
-    val digest =
-        MessageDigest
-            .getInstance("SHA-256")
-            .digest(
-                normalized.toByteArray()
-            )
-
-    return digest.joinToString("") {
-        "%02x".format(it)
     }
 }

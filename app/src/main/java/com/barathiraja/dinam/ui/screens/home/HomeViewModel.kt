@@ -5,12 +5,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.barathiraja.dinam.data.local.entity.ListEntity
 import com.barathiraja.dinam.data.repository.ListRepository
-import com.barathiraja.dinam.data.repository.UserRepository
+import com.barathiraja.dinam.data.session.UserSession
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 data class HomeUiState(
     val lists: List<ListEntity> = emptyList(),
@@ -19,7 +18,7 @@ data class HomeUiState(
 
 class HomeViewModel(
     private val listRepository: ListRepository,
-    private val userRepository: UserRepository
+    private val userSession: UserSession
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -41,7 +40,7 @@ class HomeViewModel(
                 isLoading = true
             )
 
-            val user = getOrCreateUser()
+            val user = userSession.getCurrentUser()
 
             val lists =
                 listRepository.getActiveLists(
@@ -54,32 +53,11 @@ class HomeViewModel(
             )
         }
     }
-
-    private suspend fun getOrCreateUser(): com.barathiraja.dinam.data.local.entity.UserEntity {
-
-        val existingUser =
-            userRepository.getUser()
-
-        if (existingUser != null) {
-            return existingUser
-        }
-
-        val newUser =
-            com.barathiraja.dinam.data.local.entity.UserEntity(
-                id = UUID.randomUUID().toString()
-            )
-
-        userRepository.createUser(
-            newUser
-        )
-
-        return newUser
-    }
 }
 
 class HomeViewModelFactory(
     private val listRepository: ListRepository,
-    private val userRepository: UserRepository
+    private val userSession: UserSession
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -95,7 +73,7 @@ class HomeViewModelFactory(
 
             return HomeViewModel(
                 listRepository = listRepository,
-                userRepository = userRepository
+                userSession = userSession
             ) as T
         }
 

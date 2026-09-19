@@ -3,6 +3,7 @@ package com.barathiraja.dinam.data.repository
 import android.content.Context
 import com.barathiraja.dinam.data.local.provider.DinamDatabaseProvider
 import com.barathiraja.dinam.data.service.TodayOccurrenceService
+import com.barathiraja.dinam.data.session.UserSession
 
 object DinamRepositoryProvider {
 
@@ -11,6 +12,10 @@ object DinamRepositoryProvider {
 
         val userRepository = UserRepository(
             userDao = database.userDao()
+        )
+
+        val userSession = UserSession(
+            userRepository = userRepository
         )
 
         val todayRepository = TodayRepository(
@@ -45,6 +50,7 @@ object DinamRepositoryProvider {
 
         return Repositories(
             userRepository = userRepository,
+            userSession = userSession,
             todayRepository = todayRepository,
             occurrenceRepository = occurrenceRepository,
             occurrenceItemRepository = occurrenceItemRepository,
@@ -58,6 +64,7 @@ object DinamRepositoryProvider {
 
 data class Repositories(
     val userRepository: UserRepository,
+    val userSession: UserSession,
     val todayRepository: TodayRepository,
     val occurrenceRepository: OccurrenceRepository,
     val occurrenceItemRepository: OccurrenceItemRepository,

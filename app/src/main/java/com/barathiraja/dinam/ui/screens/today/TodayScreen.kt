@@ -41,7 +41,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.barathiraja.dinam.data.local.entity.OccurrenceItemEntity
 import com.barathiraja.dinam.data.model.TodoItem
+import com.barathiraja.dinam.domain.util.DateProvider
 import com.barathiraja.dinam.ui.components.common.ComposerChip
 import com.barathiraja.dinam.ui.components.common.DateItem
 import com.barathiraja.dinam.ui.components.home.TodoRow
@@ -52,7 +54,6 @@ import com.barathiraja.dinam.ui.theme.DinamDimensions
 import java.time.LocalDate
 import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
-import com.barathiraja.dinam.data.local.entity.OccurrenceItemEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,7 +66,7 @@ fun TodayScreen(
     val uiState by todayViewModel.uiState.collectAsState()
 
     val today = remember {
-        LocalDate.now()
+        DateProvider.today()
     }
 
     val dates = remember(today) {

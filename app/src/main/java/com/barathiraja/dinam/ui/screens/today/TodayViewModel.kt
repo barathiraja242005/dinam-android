@@ -5,16 +5,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.barathiraja.dinam.data.local.entity.OccurrenceItemEntity
 import com.barathiraja.dinam.data.local.entity.TodayItemEntity
-import com.barathiraja.dinam.data.local.entity.UserEntity
-import com.barathiraja.dinam.data.repository.UserRepository
 import com.barathiraja.dinam.data.service.TodayOccurrenceService
+import com.barathiraja.dinam.data.session.UserSession
+import com.barathiraja.dinam.domain.util.Canonicalizer
+import com.barathiraja.dinam.domain.util.DateProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.security.MessageDigest
-import java.time.LocalDate
-import java.util.Locale
 import java.util.UUID
 
 data class TodayUiState(
@@ -25,7 +23,7 @@ data class TodayUiState(
 
 class TodayViewModel(
     private val todayOccurrenceService: TodayOccurrenceService,
-    private val userRepository: UserRepository
+    private val userSession: UserSession
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -79,7 +77,7 @@ class TodayViewModel(
                 isLoading = true
             )
 
-            val user = getOrCreateUser()
+            val user = userSession.getCurrentUser()
 
             val occurrence =
                 todayOccurrenceService.getOrCreateOccurrence(
@@ -113,7 +111,7 @@ class TodayViewModel(
 
         viewModelScope.launch {
 
-            val user = getOrCreateUser()
+            val user = userSession.getCurrentUser()
 
             val periodDate =
                 _uiState.value.selectedDate
@@ -128,9 +126,10 @@ class TodayViewModel(
                 id = UUID.randomUUID().toString(),
                 userId = user.id,
                 text = trimmedText,
-                canonicalId = canonicalId(
-                    trimmedText
-                ),
+                canonicalId =
+                    Canonicalizer.canonicalId(
+                        trimmedText
+                    ),
                 remindAt = remindAt,
                 skipIfComplete = false,
                 position = _uiState.value.items.size,
@@ -189,59 +188,10 @@ class TodayViewModel(
         }
     }
 
-    private suspend fun getOrCreateUser(): UserEntity {
-
-        val existingUser =
-            userRepository.getUser()
-
-        if (existingUser != null) {
-            return existingUser
-        }
-
-        val newUser = UserEntity(
-            id = UUID.randomUUID().toString()
-        )
-
-        userRepository.createUser(
-            newUser
-        )
-
-        return newUser
-    }
-
-    private fun canonicalId(
-        text: String
-    ): String {
-
-        val normalized =
-            text
-                .lowercase(Locale.US)
-                .replace(
-                    Regex("[^a-z0-9\\s]"),
-                    " "
-                )
-                .replace(
-                    Regex("\\s+"),
-                    " "
-                )
-                .trim()
-
-        val digest =
-            MessageDigest
-                .getInstance("SHA-256")
-                .digest(
-                    normalized.toByteArray()
-                )
-
-        return digest.joinToString("") {
-            "%02x".format(it)
-        }
-    }
-
     companion object {
 
         fun currentLocalDate(): String {
-            return LocalDate.now().toString()
+            return DateProvider.todayString()
         }
     }
 }
@@ -252,7 +202,7 @@ private fun currentLocalDate(): String {
 
 class TodayViewModelFactory(
     private val todayOccurrenceService: TodayOccurrenceService,
-    private val userRepository: UserRepository
+    private val userSession: UserSession
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -269,8 +219,8 @@ class TodayViewModelFactory(
             return TodayViewModel(
                 todayOccurrenceService =
                     todayOccurrenceService,
-                userRepository =
-                    userRepository
+                userSession =
+                    userSession
             ) as T
         }
 

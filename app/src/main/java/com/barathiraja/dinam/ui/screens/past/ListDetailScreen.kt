@@ -37,8 +37,6 @@ import com.barathiraja.dinam.data.local.entity.ListItemEntity
 import com.barathiraja.dinam.ui.components.home.CheckmarkBox
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamDimensions
-import java.security.MessageDigest
-import java.util.Locale
 
 @Composable
 fun ListDetailScreen(
@@ -77,8 +75,7 @@ fun ListDetailScreen(
 
             viewModel.addItem(
                 listId = list.id,
-                text = text,
-                canonicalId = canonicalId(text)
+                text = text
             )
 
             itemText = ""
@@ -381,34 +378,5 @@ private fun ListDetailItemRow(
                     DinamColors.Border
                 )
         )
-    }
-}
-
-private fun canonicalId(
-    text: String
-): String {
-
-    val normalized =
-        text
-            .lowercase(Locale.US)
-            .replace(
-                Regex("[^a-z0-9\\s]"),
-                " "
-            )
-            .replace(
-                Regex("\\s+"),
-                " "
-            )
-            .trim()
-
-    val digest =
-        MessageDigest
-            .getInstance("SHA-256")
-            .digest(
-                normalized.toByteArray()
-            )
-
-    return digest.joinToString("") {
-        "%02x".format(it)
     }
 }
