@@ -7,9 +7,11 @@ import com.barathiraja.dinam.domain.model.OccurrenceItem
 import com.barathiraja.dinam.domain.model.OverdueItem
 import com.barathiraja.dinam.domain.model.TodayItem
 import com.barathiraja.dinam.domain.repository.ListItemRepository
+import com.barathiraja.dinam.domain.repository.ListRepository
 import com.barathiraja.dinam.domain.repository.OccurrenceItemRepository
 import com.barathiraja.dinam.domain.repository.OccurrenceRepository
 import com.barathiraja.dinam.domain.repository.TodayRepository
+import com.barathiraja.dinam.domain.util.Canonicalizer
 import com.barathiraja.dinam.domain.util.IdGenerator
 import java.time.LocalDate
 
@@ -18,6 +20,7 @@ class TodayOccurrenceService(
     private val occurrenceItemRepository: OccurrenceItemRepository,
     private val todayRepository: TodayRepository,
     private val listItemRepository: ListItemRepository,
+    private val listRepository: ListRepository,
     private val idGenerator: IdGenerator = IdGenerator.Default
 ) {
 
@@ -72,6 +75,7 @@ class TodayOccurrenceService(
 
         val scheduledListItems = listItemRepository.getScheduledListItems(periodDate)
         val convertedListItems = scheduledListItems.map { listItem ->
+            val listTitle = listRepository.getListById(listItem.listId)?.title
             OccurrenceItem(
                 id = listItem.id,
                 occurrenceId = listItem.listId,
@@ -83,7 +87,8 @@ class TodayOccurrenceService(
                 position = routineItems.size + listItem.position,
                 checked = listItem.checked,
                 checkedAt = null,
-                snoozedUntil = listItem.snoozedUntil
+                snoozedUntil = listItem.snoozedUntil,
+                listName = listTitle
             )
         }
 
@@ -98,6 +103,7 @@ class TodayOccurrenceService(
 
         val overdueListItems = listItemRepository.getOverdueListItems(todayDate)
         for (listItem in overdueListItems) {
+            val listTitle = listRepository.getListById(listItem.listId)?.title
             val occurrenceItem = OccurrenceItem(
                 id = listItem.id,
                 occurrenceId = listItem.listId,
@@ -108,7 +114,9 @@ class TodayOccurrenceService(
                 remindAt = listItem.remindAt,
                 position = listItem.position,
                 checked = listItem.checked,
-                checkedAt = null
+                checkedAt = null,
+                snoozedUntil = listItem.snoozedUntil,
+                listName = listTitle
             )
             overdueList.add(
                 OverdueItem(
@@ -281,6 +289,71 @@ class TodayOccurrenceService(
                 fromDate = periodDate,
                 todayItemId = item.id
             )
+        }
+    }
+
+    suspend fun renameItem(
+        item: OccurrenceItem,
+        newText: String
+    ) {
+        val trimmedText = newText.trim()
+        if (trimmedText.isEmpty()) return
+        val newCanonicalId = Canonicalizer.canonicalId(trimmedText)
+
+        if (item.origin == "list_item") {
+            val listItem = listItemRepository.getItemsForList(item.occurrenceId)
+                .firstOrNull { it.id == item.id }
+            if (listItem != null) {
+                listItemRepository.updateItem(
+                    listItem.copy(
+                        text = trimmedText,
+                        canonicalId = newCanonicalId
+                    )
+                )
+            }
+        } else {
+            val updatedItem = item.copy(
+                text = trimmedText,
+                canonicalId = newCanonicalId
+            )
+            occurrenceItemRepository.updateItem(updatedItem)
+
+            val todayItemId = item.todayItemId
+            if (todayItemId != null) {
+                val todayItem = todayRepository.getItemById(todayItemId)
+                if (todayItem != null) {
+                    todayRepository.updateItem(
+                        todayItem.copy(
+                            text = trimmedText,
+                            canonicalId = newCanonicalId
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    suspend fun updateItemTime(
+        item: OccurrenceItem,
+        newTime: String?
+    ) {
+        if (item.origin == "list_item") {
+            val listItem = listItemRepository.getItemsForList(item.occurrenceId)
+                .firstOrNull { it.id == item.id }
+            if (listItem != null) {
+                listItemRepository.updateItem(listItem.copy(remindAt = newTime))
+            }
+        } else {
+            val updatedItem = item.copy(remindAt = newTime)
+            occurrenceItemRepository.updateItem(updatedItem)
+
+            val todayItemId = item.todayItemId
+            if (todayItemId != null) {
+                val todayItem = todayRepository.getItemById(todayItemId)
+                if (todayItem != null) {
+                    todayRepository.updateItem(todayItem.copy(remindAt = newTime))
+                }
+            }
         }
     }
 

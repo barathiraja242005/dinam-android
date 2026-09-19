@@ -70,7 +70,9 @@ import java.util.Locale
 fun TodayScreen(
     todayViewModel: TodayViewModel,
     onBack: () -> Unit,
-    onItemClick: (OccurrenceItem) -> Unit
+    onItemClick: (OccurrenceItem) -> Unit,
+    onDeleteItem: (OccurrenceItem) -> Unit = {},
+    onSaveInlineEdit: (item: OccurrenceItem, newText: String) -> Unit = { _, _ -> }
 ) {
 
     val uiState by todayViewModel.uiState.collectAsState()
@@ -347,7 +349,13 @@ fun TodayScreen(
                             onItemClick = {
                                 onItemClick(occurrenceItem)
                             },
-                            checkboxEnabled = (date == today)
+                            checkboxEnabled = (date == today),
+                            onSwipeRight = {
+                                onDeleteItem(occurrenceItem)
+                            },
+                            onSaveInlineEdit = { newText ->
+                                onSaveInlineEdit(occurrenceItem, newText)
+                            }
                         )
                     }
 

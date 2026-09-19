@@ -53,7 +53,8 @@ object DinamRepositoryProvider {
             occurrenceRepository = occurrenceRepository,
             occurrenceItemRepository = occurrenceItemRepository,
             todayRepository = todayRepository,
-            listItemRepository = listItemRepository
+            listItemRepository = listItemRepository,
+            listRepository = listRepository
         )
 
         return Repositories(

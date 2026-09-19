@@ -13,10 +13,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import com.barathiraja.dinam.ui.components.common.SwipeableTaskRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -41,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import com.barathiraja.dinam.domain.model.DinamList
 import com.barathiraja.dinam.domain.model.ListItem
 import androidx.compose.foundation.layout.fillMaxSize
+import com.barathiraja.dinam.domain.util.Canonicalizer
 import com.barathiraja.dinam.ui.components.common.swipeToBack
 import com.barathiraja.dinam.ui.components.home.CheckmarkBox
 import com.barathiraja.dinam.ui.theme.DinamColors
@@ -58,6 +63,8 @@ fun ListDetailScreen(
     onAddFromYourLists: () -> Unit,
     onAddItem: () -> Unit,
     onItemClick: (ListItem) -> Unit = {},
+    onDeleteItem: (ListItem) -> Unit = {},
+    onSaveInlineEdit: (item: ListItem, newText: String) -> Unit = { _, _ -> },
     viewModel: ListDetailViewModel? = null
 ) {
 
@@ -223,6 +230,25 @@ fun ListDetailScreen(
                     },
                     onItemClick = {
                         onItemClick(item)
+                    },
+                    onSaveInlineEdit = { newText ->
+                        if (viewModel != null) {
+                            viewModel.updateItem(
+                                item.copy(
+                                    text = newText,
+                                    canonicalId = Canonicalizer.canonicalId(newText)
+                                )
+                            )
+                        } else {
+                            onSaveInlineEdit(item, newText)
+                        }
+                    },
+                    onSwipeRight = {
+                        if (viewModel != null) {
+                            viewModel.deleteItem(item)
+                        } else {
+                            onDeleteItem(item)
+                        }
                     }
                 )
             }
@@ -328,93 +354,144 @@ fun ListDetailScreen(
 private fun ListDetailItemRow(
     item: ListItem,
     onCheckedChange: (Boolean) -> Unit,
-    onItemClick: () -> Unit = {}
+    onItemClick: () -> Unit = {},
+    onSaveInlineEdit: ((newText: String) -> Unit)? = null,
+    onSwipeRight: (() -> Unit)? = null
 ) {
+    var isEditing by remember(item.id) { mutableStateOf(false) }
+    var editText by remember(item.id, item.text) { mutableStateOf(item.text) }
 
-    Column {
+    val keyboardController = LocalSoftwareKeyboardController.current
 
-        Row(
+    SwipeableTaskRow(
+        enabled = !isEditing,
+        onSwipeLeft = {
+            if (onSaveInlineEdit != null) {
+                editText = item.text
+                isEditing = true
+            }
+        },
+        onSwipeRight = onSwipeRight
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(
-                    DinamDimensions.itemRowHeight
-                )
-                .clickable {
+                .clickable(enabled = !isEditing) {
                     onItemClick()
                 }
-                .padding(
-                    start = DinamDimensions.screenHorizontal,
-                    end = DinamDimensions.screenHorizontal
-                ),
-            verticalAlignment = Alignment.CenterVertically
         ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = DinamDimensions.itemRowHeight)
+                    .padding(
+                        horizontal = DinamDimensions.screenHorizontal,
+                        vertical = 12.dp
+                    ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CheckmarkBox(
+                    checked = item.checked,
+                    onClick = {
+                        onCheckedChange(!item.checked)
+                    },
+                    enabled = !isEditing
+                )
 
-            CheckmarkBox(
-                checked = item.checked,
-                onClick = {
-                    onCheckedChange(
-                        !item.checked
+                Spacer(modifier = Modifier.width(DinamDimensions.checkboxTextSpacing))
+
+                if (isEditing) {
+                    BasicTextField(
+                        value = editText,
+                        onValueChange = { editText = it },
+                        modifier = Modifier.weight(1f),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = DinamColors.TextPrimary
+                        ),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                keyboardController?.hide()
+                                val trimmed = editText.trim()
+                                if (trimmed.isNotEmpty() && onSaveInlineEdit != null) {
+                                    onSaveInlineEdit(trimmed)
+                                }
+                                isEditing = false
+                            }
+                        )
                     )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = "✓",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DinamColors.Primary,
+                        modifier = Modifier
+                            .clickable {
+                                keyboardController?.hide()
+                                val trimmed = editText.trim()
+                                if (trimmed.isNotEmpty() && onSaveInlineEdit != null) {
+                                    onSaveInlineEdit(trimmed)
+                                }
+                                isEditing = false
+                            }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = item.text,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                color = if (item.checked) {
+                                    DinamColors.TextMuted
+                                } else {
+                                    DinamColors.TextPrimary
+                                }
+                            ),
+                            textDecoration = if (item.checked) {
+                                TextDecoration.LineThrough
+                            } else {
+                                TextDecoration.None
+                            }
+                        )
+
+                        val detailsText = listOfNotNull(
+                            item.dueDate?.let { formatDisplayShortDate(it) },
+                            item.remindAt
+                        ).joinToString(" · ")
+
+                        if (detailsText.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = detailsText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = DinamColors.TextSecondary
+                            )
+                        }
+                    }
+
+                    if (item.remindMe && !item.dueDate.isNullOrEmpty() && !item.remindAt.isNullOrEmpty()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "🔔",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
-            )
+            }
 
             Spacer(
-                modifier = Modifier.width(
-                    DinamDimensions.checkboxTextSpacing
-                )
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(DinamDimensions.dividerHeight)
+                    .background(DinamColors.BorderLight)
             )
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = item.text,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        color = if (item.checked) {
-                            DinamColors.TextMuted
-                        } else {
-                            DinamColors.TextPrimary
-                        }
-                    ),
-                    textDecoration = if (item.checked) {
-                        TextDecoration.LineThrough
-                    } else {
-                        TextDecoration.None
-                    }
-                )
-
-                val detailsText = listOfNotNull(
-                    item.dueDate?.let { formatDisplayShortDate(it) },
-                    item.remindAt
-                ).joinToString(" · ")
-
-                if (detailsText.isNotEmpty()) {
-                    Text(
-                        text = detailsText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DinamColors.TextSecondary
-                    )
-                }
-            }
-
-            if (item.remindMe && !item.dueDate.isNullOrEmpty() && !item.remindAt.isNullOrEmpty()) {
-                Text(
-                    text = "🔔",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
         }
-
-        Spacer(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(
-                    DinamDimensions.dividerHeight
-                )
-                .background(
-                    DinamColors.BorderLight
-                )
-        )
     }
 }
 

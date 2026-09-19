@@ -58,7 +58,9 @@ fun HomeScreen(
     onOpenList: (DinamList) -> Unit,
     onCreateList: () -> Unit,
     onItemClick: (OccurrenceItem) -> Unit = {},
-    onRescheduleItem: (OccurrenceItem) -> Unit = {}
+    onRescheduleItem: (OccurrenceItem) -> Unit = {},
+    onDeleteItem: (OccurrenceItem) -> Unit = {},
+    onSaveInlineEdit: (item: OccurrenceItem, newText: String) -> Unit = { _, _ -> }
 ) {
 
     LaunchedEffect(Unit) {
@@ -244,6 +246,12 @@ fun HomeScreen(
                     },
                     onItemClick = {
                         onItemClick(item)
+                    },
+                    onSwipeRight = {
+                        onDeleteItem(item)
+                    },
+                    onSaveInlineEdit = { newText ->
+                        onSaveInlineEdit(item, newText)
                     }
                 )
             }
