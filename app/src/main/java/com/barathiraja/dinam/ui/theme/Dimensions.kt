@@ -5,15 +5,43 @@ import androidx.compose.ui.unit.dp
 
 object DinamDimensions {
 
+    /*
+     * ---------------------------------------------------------
+     * SCREEN
+     * ---------------------------------------------------------
+     *
+     * Shared spacing used by all full-screen pages.
+     */
+
     val screenHorizontal: Dp = 26.dp
 
-    val screenTop: Dp = 40.dp
+    val screenTop: Dp = 64.dp
+
+    /*
+     * Minimum comfortable touch target for navigation
+     * and other top-level actions.
+     */
+    val navigationTouchHeight: Dp = 56.dp
+
+
+    /*
+     * ---------------------------------------------------------
+     * CONTENT SPACING
+     * ---------------------------------------------------------
+     */
 
     val titleToContent: Dp = 24.dp
 
     val sectionSpacing: Dp = 18.dp
 
     val smallSpacing: Dp = 10.dp
+
+
+    /*
+     * ---------------------------------------------------------
+     * LIST ITEMS
+     * ---------------------------------------------------------
+     */
 
     val itemRowHeight: Dp = 58.dp
 
@@ -23,6 +51,13 @@ object DinamDimensions {
 
     val dividerHeight: Dp = 1.dp
 
+
+    /*
+     * ---------------------------------------------------------
+     * CHIPS
+     * ---------------------------------------------------------
+     */
+
     val chipSpacing: Dp = 10.dp
 
     val chipHorizontalPadding: Dp = 14.dp
@@ -30,6 +65,13 @@ object DinamDimensions {
     val chipVerticalPadding: Dp = 7.dp
 
     val chipRadius: Dp = 20.dp
+
+
+    /*
+     * ---------------------------------------------------------
+     * DATE STRIP
+     * ---------------------------------------------------------
+     */
 
     val dateItemWidth: Dp = 64.dp
 

@@ -1,6 +1,7 @@
 package com.barathiraja.dinam.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
@@ -27,6 +28,11 @@ interface OccurrenceItemDao {
 
     @Update
     suspend fun update(
+        item: OccurrenceItemEntity
+    )
+
+    @Delete
+    suspend fun delete(
         item: OccurrenceItemEntity
     )
 }

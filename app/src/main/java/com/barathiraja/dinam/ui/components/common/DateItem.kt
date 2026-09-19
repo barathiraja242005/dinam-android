@@ -20,10 +20,11 @@ import com.barathiraja.dinam.ui.theme.DinamDimensions
 fun DateItem(
     day: String,
     date: String,
-    selected: Boolean
+    selected: Boolean,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .width(DinamDimensions.dateItemWidth)
             .height(DinamDimensions.dateItemHeight)
             .then(

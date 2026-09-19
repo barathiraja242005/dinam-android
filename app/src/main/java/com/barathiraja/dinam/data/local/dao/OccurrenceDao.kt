@@ -21,6 +21,19 @@ interface OccurrenceDao {
         periodDate: String
     ): OccurrenceEntity?
 
+    @Query(
+        """
+        SELECT * FROM occurrence
+        WHERE user_id = :userId
+          AND period_date >= :fromDate
+        ORDER BY period_date ASC
+        """
+    )
+    suspend fun getFromDate(
+        userId: String,
+        fromDate: String
+    ): List<OccurrenceEntity>
+
     @Insert
     suspend fun insert(
         occurrence: OccurrenceEntity

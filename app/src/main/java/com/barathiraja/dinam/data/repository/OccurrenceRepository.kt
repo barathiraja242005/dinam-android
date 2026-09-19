@@ -17,6 +17,16 @@ class OccurrenceRepository(
         )
     }
 
+    suspend fun getOccurrencesFromDate(
+        userId: String,
+        fromDate: String
+    ): List<OccurrenceEntity> {
+        return occurrenceDao.getFromDate(
+            userId = userId,
+            fromDate = fromDate
+        )
+    }
+
     suspend fun createOccurrence(
         occurrence: OccurrenceEntity
     ) {

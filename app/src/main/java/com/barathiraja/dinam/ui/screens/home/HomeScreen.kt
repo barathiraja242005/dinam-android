@@ -2,6 +2,7 @@ package com.barathiraja.dinam.ui.screens.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,52 +16,97 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.barathiraja.dinam.data.model.Checklist
-import com.barathiraja.dinam.data.model.TodoItem
+import androidx.compose.ui.unit.sp
+import com.barathiraja.dinam.data.local.entity.ListEntity
+import com.barathiraja.dinam.data.local.entity.OccurrenceItemEntity
 import com.barathiraja.dinam.ui.components.home.TodoRow
+import com.barathiraja.dinam.ui.screens.today.TodayViewModel
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamDimensions
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun HomeScreen(
-    onOpenToday: () -> Unit
+    homeViewModel: HomeViewModel,
+    todayViewModel: TodayViewModel,
+    onOpenToday: () -> Unit,
+    onOpenList: (ListEntity) -> Unit,
+    onCreateList: () -> Unit
 ) {
 
-    val todos = remember {
-        mutableStateListOf(
-            TodoItem("Run", "6:30", true),
-            TodoItem("Morning tablet", "8:00", true),
-            TodoItem("Vitamin D", "8:00", true),
-            TodoItem("Evening tablet", "21:30", false),
-            TodoItem("Ten minutes of reading", "21:30", false),
-            TodoItem("Make the bed", null, false)
+    val uiState by homeViewModel.uiState.collectAsState()
+
+    val todayState by todayViewModel.uiState.collectAsState()
+
+    val todayItems =
+        todayState.items
+
+    val completedCount =
+        todayItems.count {
+            it.checked
+        }
+
+    val todayDateText =
+        formatHomeDate(
+            todayState.selectedDate
         )
+
+    var itemText by remember {
+        mutableStateOf("")
     }
 
-    val lists = remember {
-        listOf(
-            Checklist("Grocery — Trader Joe's", "4/12"),
-            Checklist("Move to Oakland", "9/31"),
-            Checklist("Packing — Tahoe", ""),
-            Checklist("Bike service", "2/3")
+    var selectedTime by remember {
+        mutableStateOf("")
+    }
+
+    fun addCurrentItem() {
+
+        val text =
+            itemText.trim()
+
+        if (text.isEmpty()) {
+            return
+        }
+
+        todayViewModel.addItem(
+            text = text,
+            remindAt = selectedTime.ifEmpty {
+                null
+            }
         )
+
+        itemText = ""
+        selectedTime = ""
     }
 
     Scaffold(
         containerColor = DinamColors.Surface,
         floatingActionButton = {
+
             FloatingActionButton(
-                onClick = {},
+                onClick = onCreateList,
                 modifier = Modifier
                     .navigationBarsPadding()
                     .size(64.dp),
@@ -68,6 +114,7 @@ fun HomeScreen(
                 containerColor = DinamColors.Primary,
                 contentColor = DinamColors.Surface
             ) {
+
                 Text(
                     text = "+",
                     style = MaterialTheme.typography.titleLarge
@@ -79,16 +126,26 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DinamColors.Surface)
-                .verticalScroll(rememberScrollState())
+                .background(
+                    DinamColors.Surface
+                )
+                .verticalScroll(
+                    rememberScrollState()
+                )
                 .padding(
                     start = 32.dp,
                     end = 26.dp,
-                    top = 50.dp,
+                    top = DinamDimensions.screenTop,
                     bottom = 32.dp
                 )
                 .padding(innerPadding)
         ) {
+
+            /*
+             * -------------------------------------------------
+             * TODAY HEADER
+             * -------------------------------------------------
+             */
 
             Text(
                 text = "Today",
@@ -103,14 +160,19 @@ fun HomeScreen(
             )
 
             Row(
-                modifier = Modifier.clickable {
-                    onOpenToday()
-                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(
+                        DinamDimensions.navigationTouchHeight
+                    )
+                    .clickable {
+                        onOpenToday()
+                    },
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
                 Text(
-                    text = "Friday 12 September",
+                    text = todayDateText,
                     style = MaterialTheme.typography.bodyLarge,
                     color = DinamColors.TextSecondary
                 )
@@ -130,7 +192,7 @@ fun HomeScreen(
                 )
 
                 Text(
-                    text = "3 of 6 done",
+                    text = "$completedCount of ${todayItems.size} done",
                     style = MaterialTheme.typography.bodyLarge,
                     color = DinamColors.TextSecondary
                 )
@@ -152,12 +214,20 @@ fun HomeScreen(
                 )
             )
 
-            todos.forEachIndexed { index, item ->
+            /*
+             * -------------------------------------------------
+             * TODAY ITEMS
+             * -------------------------------------------------
+             */
+
+            todayItems.forEach { item ->
 
                 TodoRow(
-                    item = item,
+                    item = item.toTodoItem(),
                     onCheckedChange = {
-                        todos[index] = item.copy(
+
+                        todayViewModel.setItemChecked(
+                            item = item,
                             checked = !item.checked
                         )
                     }
@@ -168,11 +238,86 @@ fun HomeScreen(
                 modifier = Modifier.height(4.dp)
             )
 
-            AddItemRow()
+            /*
+             * -------------------------------------------------
+             * HOME ADD ITEM COMPOSER
+             * -------------------------------------------------
+             */
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text = "+",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = DinamColors.TextPrimary,
+                    modifier = Modifier.clickable {
+                        addCurrentItem()
+                    }
+                )
+
+                Spacer(
+                    modifier = Modifier.width(14.dp)
+                )
+
+                TextField(
+                    value = itemText,
+                    onValueChange = {
+                        itemText = it
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(
+                            DinamDimensions.itemRowHeight
+                        ),
+                    singleLine = true,
+                    placeholder = {
+                        Text(
+                            text = "Add item",
+                            color = DinamColors.TextMuted
+                        )
+                    },
+                    textStyle = TextStyle(
+                        fontSize = 18.dp.value.sp,
+                        color = DinamColors.TextPrimary
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            addCurrentItem()
+                        }
+                    ),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor =
+                            DinamColors.Surface,
+                        unfocusedContainerColor =
+                            DinamColors.Surface,
+                        disabledContainerColor =
+                            DinamColors.Surface,
+                        focusedIndicatorColor =
+                            Color.Transparent,
+                        unfocusedIndicatorColor =
+                            Color.Transparent,
+                        cursorColor =
+                            DinamColors.Primary
+                    )
+                )
+            }
 
             Spacer(
                 modifier = Modifier.height(42.dp)
             )
+
+            /*
+             * -------------------------------------------------
+             * LISTS
+             * -------------------------------------------------
+             */
 
             Text(
                 text = "Lists",
@@ -186,49 +331,37 @@ fun HomeScreen(
                 )
             )
 
-            lists.forEach { list ->
+            if (
+                uiState.lists.isEmpty() &&
+                !uiState.isLoading
+            ) {
 
-                ChecklistRow(
-                    checklist = list
+                Text(
+                    text = "No lists yet",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = DinamColors.TextMuted
                 )
+
+            } else {
+
+                uiState.lists.forEach { list ->
+
+                    ChecklistRow(
+                        list = list,
+                        onClick = {
+                            onOpenList(list)
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun AddItemRow() {
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-
-        Text(
-            text = "+",
-            style = MaterialTheme.typography.titleLarge,
-            color = DinamColors.TextLight
-        )
-
-        Spacer(
-            modifier = Modifier.width(
-                DinamDimensions.checkboxTextSpacing
-            )
-        )
-
-        Text(
-            text = "Add item",
-            style = MaterialTheme.typography.bodyLarge,
-            color = DinamColors.TextMuted
-        )
-    }
-}
-
-@Composable
 private fun ChecklistRow(
-    checklist: Checklist
+    list: ListEntity,
+    onClick: () -> Unit
 ) {
 
     Column {
@@ -238,25 +371,19 @@ private fun ChecklistRow(
                 .fillMaxWidth()
                 .height(
                     DinamDimensions.itemRowHeight
-                ),
+                )
+                .clickable {
+                    onClick()
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
 
             Text(
-                text = checklist.title,
+                text = list.title,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge,
                 color = DinamColors.TextPrimary
             )
-
-            if (checklist.progress.isNotEmpty()) {
-
-                Text(
-                    text = checklist.progress,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = DinamColors.TextMuted
-                )
-            }
         }
 
         Spacer(
@@ -265,7 +392,44 @@ private fun ChecklistRow(
                 .height(
                     DinamDimensions.dividerHeight
                 )
-                .background(DinamColors.Border)
+                .background(
+                    DinamColors.Border
+                )
         )
+    }
+}
+
+private fun OccurrenceItemEntity.toTodoItem():
+        com.barathiraja.dinam.data.model.TodoItem {
+
+    return com.barathiraja.dinam.data.model.TodoItem(
+        title = text,
+        time = remindAt,
+        checked = checked
+    )
+}
+
+private fun formatHomeDate(
+    date: String
+): String {
+
+    return try {
+
+        val parsedDate =
+            LocalDate.parse(date)
+
+        val formatter =
+            DateTimeFormatter.ofPattern(
+                "EEEE d MMMM",
+                Locale.US
+            )
+
+        parsedDate.format(
+            formatter
+        )
+
+    } catch (_: Exception) {
+
+        date
     }
 }

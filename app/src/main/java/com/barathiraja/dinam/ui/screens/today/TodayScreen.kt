@@ -1,8 +1,12 @@
 package com.barathiraja.dinam.ui.screens.today
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,14 +16,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,30 +45,61 @@ import com.barathiraja.dinam.data.model.TodoItem
 import com.barathiraja.dinam.ui.components.common.ComposerChip
 import com.barathiraja.dinam.ui.components.common.DateItem
 import com.barathiraja.dinam.ui.components.home.TodoRow
+import com.barathiraja.dinam.ui.screens.past.PastOccurrenceScreen
+import com.barathiraja.dinam.ui.screens.time.TimePickerScreen
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamDimensions
+import java.time.LocalDate
+import java.time.format.TextStyle as JavaTextStyle
+import java.util.Locale
+import com.barathiraja.dinam.data.local.entity.OccurrenceItemEntity
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayScreen(
     todayViewModel: TodayViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onItemClick: (OccurrenceItemEntity) -> Unit
 ) {
 
     val uiState by todayViewModel.uiState.collectAsState()
 
+    val today = remember {
+        LocalDate.now()
+    }
+
+    val dates = remember(today) {
+        (-30..30).map {
+            today.plusDays(it.toLong())
+        }
+    }
+
+    var selectedDate by remember {
+        mutableStateOf(today)
+    }
+
+    val dateListState = rememberLazyListState(
+        initialFirstVisibleItemIndex = 30
+    )
+
     var itemText by remember {
-        mutableStateOf("Evening tablet")
+        mutableStateOf("")
     }
 
     var selectedTime by remember {
-        mutableStateOf("21:30")
+        mutableStateOf("")
     }
 
     var repeatSelected by remember {
-        mutableStateOf(true)
+        mutableStateOf(false)
+    }
+
+    var showTimePicker by remember {
+        mutableStateOf(false)
     }
 
     fun addCurrentItem() {
+
         val text = itemText.trim()
 
         if (text.isEmpty()) {
@@ -68,7 +108,9 @@ fun TodayScreen(
 
         todayViewModel.addItem(
             text = text,
-            remindAt = selectedTime.ifEmpty { null }
+            remindAt = selectedTime.ifEmpty {
+                null
+            }
         )
 
         itemText = ""
@@ -76,10 +118,19 @@ fun TodayScreen(
         repeatSelected = false
     }
 
+    LaunchedEffect(selectedDate) {
+
+        todayViewModel.selectDate(
+            periodDate = selectedDate.toString()
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DinamColors.Surface)
+            .background(
+                DinamColors.Surface
+            )
     ) {
 
         Column(
@@ -108,8 +159,16 @@ fun TodayScreen(
             )
 
             Text(
-                text = "Today",
-                style = MaterialTheme.typography.headlineMedium,
+                text = if (selectedDate == today) {
+                    "Today"
+                } else {
+                    formatFullDate(
+                        selectedDate
+                    )
+                },
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
                 color = DinamColors.TextTitle
             )
 
@@ -119,45 +178,34 @@ fun TodayScreen(
                 )
             )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(
-                        rememberScrollState()
-                    ),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            LazyRow(
+                state = dateListState,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    4.dp
+                )
             ) {
 
-                DateItem(
-                    day = "Mon",
-                    date = "8",
-                    selected = false
-                )
+                items(
+                    items = dates,
+                    key = {
+                        it.toString()
+                    }
+                ) { date ->
 
-                DateItem(
-                    day = "Tue",
-                    date = "9",
-                    selected = false
-                )
+                    DateItem(
+                        day = date.dayOfWeek.getDisplayName(
+                            JavaTextStyle.SHORT,
+                            Locale.US
+                        ),
+                        date = date.dayOfMonth.toString(),
+                        selected = date == selectedDate,
+                        modifier = Modifier.clickable {
 
-                DateItem(
-                    day = "Wed",
-                    date = "10",
-                    selected = false
-                )
-
-                DateItem(
-                    day = "Thu",
-                    date = "11",
-                    selected = false
-                )
-
-                DateItem(
-                    day = "Fri",
-                    date = "12",
-                    selected = true
-                )
+                            selectedDate = date
+                        }
+                    )
+                }
             }
 
             Spacer(
@@ -173,197 +221,301 @@ fun TodayScreen(
                 .height(
                     DinamDimensions.dividerHeight
                 )
-                .background(DinamColors.BorderLight)
+                .background(
+                    DinamColors.BorderLight
+                )
         )
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = DinamDimensions.screenHorizontal,
-                    end = DinamDimensions.screenHorizontal
+        AnimatedContent(
+            targetState = selectedDate,
+            transitionSpec = {
+                fadeIn(
+                    animationSpec = tween(
+                        durationMillis = 220
+                    )
+                ) togetherWith fadeOut(
+                    animationSpec = tween(
+                        durationMillis = 160
+                    )
                 )
-        ) {
+            },
+            label = "selected-date-content"
+        ) { date ->
 
-            Spacer(
-                modifier = Modifier.height(
-                    DinamDimensions.sectionSpacing
-                )
-            )
+            if (date.isBefore(today)) {
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                PastOccurrenceScreen(
+                    selectedDate = date,
+                    items = uiState.items,
+                    onBack = onBack,
+                    onItemCheckedChange = { item, checked ->
 
-                Text(
-                    text = "${uiState.items.count { it.checked }} of ${uiState.items.size}",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DinamColors.TextPrimary
-                )
-
-                Spacer(
-                    modifier = Modifier.width(8.dp)
-                )
-
-                Text(
-                    text = "done today",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = DinamColors.TextSecondary
-                )
-            }
-
-            Spacer(
-                modifier = Modifier.height(
-                    DinamDimensions.sectionSpacing
-                )
-            )
-
-            uiState.items.forEach { occurrenceItem ->
-
-                TodoRow(
-                    item = TodoItem(
-                        title = occurrenceItem.text,
-                        time = occurrenceItem.remindAt,
-                        checked = occurrenceItem.checked
-                    ),
-                    onCheckedChange = {
                         todayViewModel.setItemChecked(
-                            item = occurrenceItem,
-                            checked = !occurrenceItem.checked
+                            item = item,
+                            checked = checked
                         )
                     }
                 )
-            }
-        }
 
-        Spacer(
-            modifier = Modifier.height(4.dp)
-        )
+            } else {
 
-        Spacer(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(
-                    DinamDimensions.dividerHeight
-                )
-                .background(DinamColors.BorderLight)
-        )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = DinamDimensions.screenHorizontal,
+                            end = DinamDimensions.screenHorizontal
+                        )
+                ) {
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = DinamDimensions.screenHorizontal,
-                    end = DinamDimensions.screenHorizontal
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+                    Spacer(
+                        modifier = Modifier.height(
+                            DinamDimensions.sectionSpacing
+                        )
+                    )
 
-            Text(
-                text = "+",
-                style = MaterialTheme.typography.titleLarge,
-                color = DinamColors.TextPrimary,
-                modifier = Modifier.clickable {
-                    addCurrentItem()
-                }
-            )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
 
-            Spacer(
-                modifier = Modifier.width(14.dp)
-            )
+                        Text(
+                            text = "${uiState.items.count { it.checked }} of ${uiState.items.size}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DinamColors.TextPrimary
+                        )
 
-            TextField(
-                value = itemText,
-                onValueChange = {
-                    itemText = it
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(
-                        DinamDimensions.itemRowHeight
-                    ),
-                singleLine = true,
-                textStyle = TextStyle(
-                    fontSize = 18.sp,
-                    color = DinamColors.TextPrimary
-                ),
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        addCurrentItem()
+                        Spacer(
+                            modifier = Modifier.width(
+                                8.dp
+                            )
+                        )
+
+                        Text(
+                            text = if (date == today) {
+                                "done today"
+                            } else {
+                                "done"
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = DinamColors.TextSecondary
+                        )
                     }
-                ),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = DinamColors.Surface,
-                    unfocusedContainerColor = DinamColors.Surface,
-                    disabledContainerColor = DinamColors.Surface,
-                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                    cursorColor = DinamColors.Primary
-                )
-            )
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = 64.dp,
-                    end = DinamDimensions.screenHorizontal
-                ),
-            horizontalArrangement = Arrangement.spacedBy(
-                DinamDimensions.chipSpacing
-            )
-        ) {
+                    Spacer(
+                        modifier = Modifier.height(
+                            DinamDimensions.sectionSpacing
+                        )
+                    )
 
-            if (selectedTime.isNotEmpty()) {
-                ComposerChip(
-                    text = selectedTime,
-                    selected = true,
-                    onClick = { }
-                )
-            }
+                    uiState.items.forEach { occurrenceItem ->
 
-            ComposerChip(
-                text = "Every day",
-                selected = repeatSelected,
-                onClick = {
-                    repeatSelected = !repeatSelected
+                        TodoRow(
+                            item = TodoItem(
+                                title = occurrenceItem.text,
+                                time = occurrenceItem.remindAt,
+                                checked = occurrenceItem.checked
+                            ),
+                            onCheckedChange = {
+
+                                todayViewModel.setItemChecked(
+                                    item = occurrenceItem,
+                                    checked = !occurrenceItem.checked
+                                )
+                            },
+                            onItemClick = {
+                                onItemClick(occurrenceItem)
+                            }
+                        )
+                    }
+
+                    Spacer(
+                        modifier = Modifier.height(
+                            4.dp
+                        )
+                    )
+
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(
+                                DinamDimensions.dividerHeight
+                            )
+                            .background(
+                                DinamColors.BorderLight
+                            )
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Text(
+                            text = "+",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = DinamColors.TextPrimary,
+                            modifier = Modifier.clickable {
+                                addCurrentItem()
+                            }
+                        )
+
+                        Spacer(
+                            modifier = Modifier.width(
+                                14.dp
+                            )
+                        )
+
+                        TextField(
+                            value = itemText,
+                            onValueChange = {
+                                itemText = it
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(
+                                    DinamDimensions.itemRowHeight
+                                ),
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                fontSize = 18.sp,
+                                color = DinamColors.TextPrimary
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    addCurrentItem()
+                                }
+                            ),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor =
+                                    DinamColors.Surface,
+                                unfocusedContainerColor =
+                                    DinamColors.Surface,
+                                disabledContainerColor =
+                                    DinamColors.Surface,
+                                focusedIndicatorColor =
+                                    androidx.compose.ui.graphics.Color.Transparent,
+                                unfocusedIndicatorColor =
+                                    androidx.compose.ui.graphics.Color.Transparent,
+                                cursorColor =
+                                    DinamColors.Primary
+                            )
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = 38.dp,
+                                end = 0.dp
+                            ),
+                        horizontalArrangement = Arrangement.spacedBy(
+                            DinamDimensions.chipSpacing
+                        )
+                    ) {
+
+                        ComposerChip(
+                            text = selectedTime.ifEmpty {
+                                "Time"
+                            },
+                            selected = selectedTime.isNotEmpty(),
+                            onClick = {
+                                showTimePicker = true
+                            }
+                        )
+
+                        ComposerChip(
+                            text = "Every day",
+                            selected = repeatSelected,
+                            onClick = {
+                                repeatSelected = !repeatSelected
+                            }
+                        )
+                    }
+
+                    Spacer(
+                        modifier = Modifier.height(
+                            14.dp
+                        )
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                DinamColors.SurfaceMuted
+                            )
+                            .padding(
+                                start = DinamDimensions.screenHorizontal,
+                                end = DinamDimensions.screenHorizontal,
+                                top = 12.dp,
+                                bottom = 16.dp
+                            ),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+                        Text(
+                            text = "Both chips clear after each item, so the next one starts",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = DinamColors.TextSecondary
+                        )
+
+                        Text(
+                            text = "fresh.",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = DinamColors.TextSecondary
+                        )
+                    }
                 }
-            )
+            }
         }
+    }
 
-        Spacer(
-            modifier = Modifier.height(14.dp)
-        )
+    if (showTimePicker) {
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(DinamColors.SurfaceMuted)
-                .padding(
-                    start = DinamDimensions.screenHorizontal,
-                    end = DinamDimensions.screenHorizontal,
-                    top = 12.dp,
-                    bottom = 16.dp
-                ),
-            horizontalAlignment = Alignment.CenterHorizontally
+        ModalBottomSheet(
+            onDismissRequest = {
+                showTimePicker = false
+            },
+            containerColor = DinamColors.Surface
         ) {
 
-            Text(
-                text = "Both chips clear after each item, so the next one starts",
-                style = MaterialTheme.typography.labelMedium,
-                color = DinamColors.TextSecondary
-            )
-
-            Text(
-                text = "fresh.",
-                style = MaterialTheme.typography.labelMedium,
-                color = DinamColors.TextSecondary
+            TimePickerScreen(
+                itemTitle = itemText.trim().ifEmpty {
+                    "item"
+                },
+                initialTime = selectedTime.ifEmpty {
+                    null
+                },
+                onDone = { time ->
+                    selectedTime = time
+                    showTimePicker = false
+                },
+                onClear = {
+                    selectedTime = ""
+                    showTimePicker = false
+                },
+                onDismiss = {
+                    showTimePicker = false
+                }
             )
         }
     }
+}
+
+private fun formatFullDate(
+    date: LocalDate
+): String {
+
+    return date.format(
+        java.time.format.DateTimeFormatter.ofPattern(
+            "EEEE, d MMMM",
+            Locale.US
+        )
+    )
 }

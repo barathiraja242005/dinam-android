@@ -26,4 +26,10 @@ class OccurrenceItemRepository(
     ) {
         occurrenceItemDao.update(item)
     }
+
+    suspend fun deleteItem(
+        item: OccurrenceItemEntity
+    ) {
+        occurrenceItemDao.delete(item)
+    }
 }

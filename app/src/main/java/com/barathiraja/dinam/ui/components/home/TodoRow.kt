@@ -1,6 +1,7 @@
 package com.barathiraja.dinam.ui.components.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,14 +21,20 @@ import com.barathiraja.dinam.ui.theme.DinamDimensions
 @Composable
 fun TodoRow(
     item: TodoItem,
-    onCheckedChange: () -> Unit
+    onCheckedChange: () -> Unit,
+    onItemClick: () -> Unit = {}
 ) {
     Column {
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(DinamDimensions.itemRowHeight),
+                .height(
+                    DinamDimensions.itemRowHeight
+                )
+                .clickable {
+                    onItemClick()
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
 
@@ -60,6 +67,7 @@ fun TodoRow(
             )
 
             if (item.time != null) {
+
                 Text(
                     text = item.time,
                     style = MaterialTheme.typography.bodyLarge.copy(
@@ -72,8 +80,12 @@ fun TodoRow(
         Spacer(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(DinamDimensions.dividerHeight)
-                .background(DinamColors.Border)
+                .height(
+                    DinamDimensions.dividerHeight
+                )
+                .background(
+                    DinamColors.Border
+                )
         )
     }
 }
