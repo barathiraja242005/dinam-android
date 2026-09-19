@@ -336,15 +336,17 @@ fun TodayScreen(
                                 checked = occurrenceItem.checked
                             ),
                             onCheckedChange = {
-
-                                todayViewModel.setItemChecked(
-                                    item = occurrenceItem,
-                                    checked = !occurrenceItem.checked
-                                )
+                                if (date == today) {
+                                    todayViewModel.setItemChecked(
+                                        item = occurrenceItem,
+                                        checked = !occurrenceItem.checked
+                                    )
+                                }
                             },
                             onItemClick = {
                                 onItemClick(occurrenceItem)
-                            }
+                            },
+                            checkboxEnabled = (date == today)
                         )
                     }
 

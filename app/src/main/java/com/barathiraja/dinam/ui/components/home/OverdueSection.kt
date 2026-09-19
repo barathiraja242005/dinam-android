@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -66,6 +67,13 @@ fun OverdueSection(
                         .height(DinamDimensions.itemRowHeight),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    CheckmarkBox(
+                        checked = item.checked,
+                        enabled = false
+                    )
+
+                    Spacer(modifier = Modifier.width(DinamDimensions.checkboxTextSpacing))
+
                     Column(
                         modifier = Modifier.weight(1f)
                     ) {

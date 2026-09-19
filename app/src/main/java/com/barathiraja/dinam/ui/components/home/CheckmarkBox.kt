@@ -20,13 +20,18 @@ import com.barathiraja.dinam.ui.theme.DinamDimensions
 @Composable
 fun CheckmarkBox(
     checked: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit = {},
+    enabled: Boolean = true
 ) {
     Box(
         modifier = Modifier
             .size(DinamDimensions.checkboxSize)
-            .clickable(
-                onClick = onClick
+            .then(
+                if (enabled) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
+                }
             )
             .then(
                 if (!checked) {

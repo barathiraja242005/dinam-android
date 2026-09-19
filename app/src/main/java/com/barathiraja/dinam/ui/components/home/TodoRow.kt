@@ -22,7 +22,8 @@ import com.barathiraja.dinam.ui.theme.DinamDimensions
 fun TodoRow(
     item: TodoItem,
     onCheckedChange: () -> Unit,
-    onItemClick: () -> Unit = {}
+    onItemClick: () -> Unit = {},
+    checkboxEnabled: Boolean = true
 ) {
     Column {
 
@@ -40,7 +41,8 @@ fun TodoRow(
 
             CheckmarkBox(
                 checked = item.checked,
-                onClick = onCheckedChange
+                onClick = onCheckedChange,
+                enabled = checkboxEnabled
             )
 
             Spacer(
