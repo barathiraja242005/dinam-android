@@ -1,4 +1,10 @@
+@file:Suppress("NewApi")
+
 package com.barathiraja.dinam.ui.screens.list
+
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,6 +57,7 @@ fun ListDetailScreen(
     ) -> Unit,
     onAddFromYourLists: () -> Unit,
     onAddItem: () -> Unit,
+    onItemClick: (ListItem) -> Unit = {},
     viewModel: ListDetailViewModel? = null
 ) {
 
@@ -213,6 +220,9 @@ fun ListDetailScreen(
                                 checked
                             )
                         }
+                    },
+                    onItemClick = {
+                        onItemClick(item)
                     }
                 )
             }
@@ -317,7 +327,8 @@ fun ListDetailScreen(
 @Composable
 private fun ListDetailItemRow(
     item: ListItem,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    onItemClick: () -> Unit = {}
 ) {
 
     Column {
@@ -329,9 +340,7 @@ private fun ListDetailItemRow(
                     DinamDimensions.itemRowHeight
                 )
                 .clickable {
-                    onCheckedChange(
-                        !item.checked
-                    )
+                    onItemClick()
                 }
                 .padding(
                     start = DinamDimensions.screenHorizontal,
@@ -355,22 +364,45 @@ private fun ListDetailItemRow(
                 )
             )
 
-            Text(
-                text = item.text,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color = if (item.checked) {
-                        DinamColors.TextMuted
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = item.text,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        color = if (item.checked) {
+                            DinamColors.TextMuted
+                        } else {
+                            DinamColors.TextPrimary
+                        }
+                    ),
+                    textDecoration = if (item.checked) {
+                        TextDecoration.LineThrough
                     } else {
-                        DinamColors.TextPrimary
+                        TextDecoration.None
                     }
-                ),
-                textDecoration = if (item.checked) {
-                    TextDecoration.LineThrough
-                } else {
-                    TextDecoration.None
+                )
+
+                val detailsText = listOfNotNull(
+                    item.dueDate?.let { formatDisplayShortDate(it) },
+                    item.remindAt
+                ).joinToString(" · ")
+
+                if (detailsText.isNotEmpty()) {
+                    Text(
+                        text = detailsText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DinamColors.TextSecondary
+                    )
                 }
-            )
+            }
+
+            if (item.remindMe && !item.dueDate.isNullOrEmpty() && !item.remindAt.isNullOrEmpty()) {
+                Text(
+                    text = "🔔",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
 
         Spacer(
@@ -380,8 +412,17 @@ private fun ListDetailItemRow(
                     DinamDimensions.dividerHeight
                 )
                 .background(
-                    DinamColors.Border
+                    DinamColors.BorderLight
                 )
         )
+    }
+}
+
+private fun formatDisplayShortDate(dateStr: String): String {
+    return try {
+        val date = LocalDate.parse(dateStr)
+        date.format(DateTimeFormatter.ofPattern("MMM d", Locale.US))
+    } catch (_: Exception) {
+        dateStr
     }
 }

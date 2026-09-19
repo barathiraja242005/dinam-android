@@ -17,6 +17,10 @@ class OccurrenceRepositoryImpl(
         return occurrenceDao.getFromDate(userId, fromDate).map { it.toDomain() }
     }
 
+    override suspend fun getPastOccurrences(userId: String, todayDate: String): List<Occurrence> {
+        return occurrenceDao.getPastOccurrences(userId, todayDate).map { it.toDomain() }
+    }
+
     override suspend fun getById(id: String): Occurrence? {
         return occurrenceDao.getById(id)?.toDomain()
     }

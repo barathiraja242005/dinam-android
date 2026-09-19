@@ -13,6 +13,14 @@ class ListItemRepositoryImpl(
         return listItemDao.getByListId(listId).map { it.toDomain() }
     }
 
+    override suspend fun getOverdueListItems(todayDate: String): List<ListItem> {
+        return listItemDao.getOverdueListItems(todayDate).map { it.toDomain() }
+    }
+
+    override suspend fun getScheduledListItems(periodDate: String): List<ListItem> {
+        return listItemDao.getScheduledListItems(periodDate).map { it.toDomain() }
+    }
+
     override suspend fun insertItem(item: ListItem) {
         listItemDao.insert(item.toEntity())
     }
@@ -36,7 +44,11 @@ class ListItemRepositoryImpl(
             text = text,
             canonicalId = canonicalId,
             position = position,
-            checked = checked
+            checked = checked,
+            dueDate = dueDate,
+            remindAt = remindAt,
+            remindMe = remindMe,
+            snoozedUntil = snoozedUntil
         )
     }
 
@@ -47,7 +59,11 @@ class ListItemRepositoryImpl(
             text = text,
             canonicalId = canonicalId,
             position = position,
-            checked = checked
+            checked = checked,
+            dueDate = dueDate,
+            remindAt = remindAt,
+            remindMe = remindMe,
+            snoozedUntil = snoozedUntil
         )
     }
 }

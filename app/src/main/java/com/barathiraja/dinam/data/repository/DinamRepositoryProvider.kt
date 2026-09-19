@@ -52,7 +52,8 @@ object DinamRepositoryProvider {
         val todayOccurrenceService = TodayOccurrenceService(
             occurrenceRepository = occurrenceRepository,
             occurrenceItemRepository = occurrenceItemRepository,
-            todayRepository = todayRepository
+            todayRepository = todayRepository,
+            listItemRepository = listItemRepository
         )
 
         return Repositories(

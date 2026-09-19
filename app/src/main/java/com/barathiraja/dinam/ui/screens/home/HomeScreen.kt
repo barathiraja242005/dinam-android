@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.barathiraja.dinam.domain.model.DinamList
 import com.barathiraja.dinam.domain.model.OccurrenceItem
 import com.barathiraja.dinam.domain.util.DateProvider
+import com.barathiraja.dinam.ui.components.home.OverdueSection
 import com.barathiraja.dinam.ui.components.home.TodoRow
 import com.barathiraja.dinam.ui.screens.today.TodayViewModel
 import com.barathiraja.dinam.ui.theme.DinamColors
@@ -56,7 +57,8 @@ fun HomeScreen(
     onOpenToday: () -> Unit,
     onOpenList: (DinamList) -> Unit,
     onCreateList: () -> Unit,
-    onItemClick: (OccurrenceItem) -> Unit = {}
+    onItemClick: (OccurrenceItem) -> Unit = {},
+    onRescheduleItem: (OccurrenceItem) -> Unit = {}
 ) {
 
     LaunchedEffect(Unit) {
@@ -242,6 +244,21 @@ fun HomeScreen(
                     },
                     onItemClick = {
                         onItemClick(item)
+                    }
+                )
+            }
+
+            /*
+             * -------------------------------------------------
+             * OVERDUE ITEMS
+             * -------------------------------------------------
+             */
+
+            if (todayState.overdueItems.isNotEmpty()) {
+                OverdueSection(
+                    overdueItems = todayState.overdueItems,
+                    onRescheduleClick = { item ->
+                        onRescheduleItem(item)
                     }
                 )
             }

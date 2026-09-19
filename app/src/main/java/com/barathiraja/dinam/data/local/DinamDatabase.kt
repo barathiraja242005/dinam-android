@@ -27,7 +27,7 @@ import com.barathiraja.dinam.data.local.entity.UserEntity
         ListItemEntity::class,
         ItemStatEntity::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 abstract class DinamDatabase : RoomDatabase() {

@@ -52,7 +52,8 @@ class OccurrenceItemRepositoryImpl(
             remindAt = remindAt,
             position = position,
             checked = checked,
-            checkedAt = checkedAt
+            checkedAt = checkedAt,
+            snoozedUntil = snoozedUntil
         )
     }
 
@@ -67,7 +68,8 @@ class OccurrenceItemRepositoryImpl(
             remindAt = remindAt,
             position = position,
             checked = checked,
-            checkedAt = checkedAt
+            checkedAt = checkedAt,
+            snoozedUntil = snoozedUntil
         )
     }
 }

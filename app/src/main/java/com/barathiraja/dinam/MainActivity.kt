@@ -1,3 +1,5 @@
+@file:Suppress("NewApi")
+
 package com.barathiraja.dinam
 
 import android.os.Bundle
@@ -5,10 +7,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -19,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
 import com.barathiraja.dinam.domain.model.DinamList
 import com.barathiraja.dinam.domain.model.ListItem
@@ -34,7 +39,9 @@ import com.barathiraja.dinam.ui.screens.item.ScopeSheet
 import com.barathiraja.dinam.ui.screens.list.ListDetailScreen
 import com.barathiraja.dinam.ui.screens.list.ListDetailViewModel
 import com.barathiraja.dinam.ui.screens.list.ListDetailViewModelFactory
+import com.barathiraja.dinam.ui.screens.list.ListItemDetailScreen
 import com.barathiraja.dinam.ui.screens.list.NewListScreen
+import com.barathiraja.dinam.ui.screens.reschedule.RescheduleScreen
 import com.barathiraja.dinam.ui.screens.time.TimePickerScreen
 import com.barathiraja.dinam.ui.screens.today.TodayScreen
 import com.barathiraja.dinam.ui.screens.today.TodayViewModel
@@ -150,8 +157,20 @@ private fun DinamApp(
         mutableStateOf(false)
     }
 
+    var showDeleteItemConfirmDialog by remember {
+        mutableStateOf(false)
+    }
+
+    var rescheduleItem by remember {
+        mutableStateOf<OccurrenceItem?>(null)
+    }
+
     var selectedList by remember {
         mutableStateOf<DinamList?>(null)
+    }
+
+    var selectedListItem by remember {
+        mutableStateOf<ListItem?>(null)
     }
 
     var selectedListItems by remember {
@@ -237,7 +256,11 @@ private fun DinamApp(
                 },
 
                 onRemoveItem = {
-                    showScopeSheet = true
+                    if (everyDayEnabled) {
+                        showScopeSheet = true
+                    } else {
+                        showDeleteItemConfirmDialog = true
+                    }
                 }
             )
 
@@ -380,6 +403,148 @@ private fun DinamApp(
                     )
                 }
             }
+
+            /*
+             * -------------------------------------------------
+             * DELETE ONE-TIME ITEM CONFIRM DIALOG
+             * -------------------------------------------------
+             */
+
+            if (showDeleteItemConfirmDialog) {
+
+                AlertDialog(
+                    onDismissRequest = {
+                        showDeleteItemConfirmDialog = false
+                    },
+                    title = {
+                        Text(
+                            text = "Delete item",
+                            color = DinamColors.TextTitle
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "Are you sure you want to delete \"${selectedItem!!.text}\"?",
+                            color = DinamColors.TextPrimary
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                val item = selectedItem
+                                val todayItem = selectedTodayItem
+                                val selectedDate =
+                                    todayViewModel.uiState.value
+                                        .selectedDate
+
+                                if (item != null) {
+
+                                    coroutineScope.launch {
+
+                                        repositories
+                                            .todayOccurrenceService
+                                            .removeJustToday(
+                                                userId =
+                                                    todayItem?.userId
+                                                        ?: repositories.userSession.getCurrentUser().id,
+                                                todayItemId =
+                                                    item.todayItemId ?: item.id,
+                                                periodDate =
+                                                    selectedDate
+                                            )
+
+                                        showDeleteItemConfirmDialog = false
+                                        selectedItem = null
+                                        selectedTodayItem = null
+                                        editedItemTime = null
+                                        everyDayEnabled = false
+
+                                        todayViewModel.refreshSelectedDate()
+                                    }
+                                } else {
+                                    showDeleteItemConfirmDialog = false
+                                }
+                            }
+                        ) {
+                            Text(
+                                text = "Delete"
+                            )
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                showDeleteItemConfirmDialog = false
+                            }
+                        ) {
+                            Text(
+                                text = "Cancel"
+                            )
+                        }
+                    }
+                )
+            }
+        }
+
+        /*
+         * -----------------------------------------------------
+         * RESCHEDULE OVERDUE ITEM SCREEN
+         * -----------------------------------------------------
+         */
+
+        rescheduleItem != null -> {
+
+            BackHandler {
+                rescheduleItem = null
+            }
+
+            RescheduleScreen(
+                item = rescheduleItem!!,
+                onBack = {
+                    rescheduleItem = null
+                },
+                onRescheduleChanged = { item, newDate, newTime, newRemindMe ->
+                    rescheduleItem = null
+                    todayViewModel.rescheduleOverdueItem(
+                        overdueItem = item,
+                        targetDate = newDate,
+                        targetTime = newTime,
+                        remindMe = newRemindMe
+                    )
+                }
+            )
+        }
+
+        /*
+         * -----------------------------------------------------
+         * LIST ITEM DETAIL
+         * -----------------------------------------------------
+         */
+
+        selectedListItem != null -> {
+
+            BackHandler {
+                selectedListItem = null
+                todayViewModel.refreshSelectedDate()
+            }
+
+            ListItemDetailScreen(
+                item = selectedListItem!!,
+                onBack = {
+                    selectedListItem = null
+                    todayViewModel.refreshSelectedDate()
+                },
+                onSaveItem = { updatedItem ->
+                    selectedListItem = updatedItem
+                    listDetailViewModel.updateItem(updatedItem)
+                    todayViewModel.refreshSelectedDate()
+                },
+                onDeleteItem = { item ->
+                    selectedListItem = null
+                    listDetailViewModel.deleteItem(item)
+                    todayViewModel.refreshSelectedDate()
+                }
+            )
         }
 
         /*
@@ -396,6 +561,7 @@ private fun DinamApp(
                 showAddListItemDialog = false
                 newListItemText = ""
                 homeViewModel.loadLists()
+                todayViewModel.refreshSelectedDate()
             }
 
             ListDetailScreen(
@@ -410,6 +576,7 @@ private fun DinamApp(
                     newListItemText = ""
 
                     homeViewModel.loadLists()
+                    todayViewModel.refreshSelectedDate()
                 },
 
                 onItemCheckedChange = {
@@ -420,6 +587,11 @@ private fun DinamApp(
                         item = item,
                         checked = checked
                     )
+                    todayViewModel.refreshSelectedDate()
+                },
+
+                onItemClick = { item ->
+                    selectedListItem = item
                 },
 
                 onAddFromYourLists = {
@@ -498,6 +670,7 @@ private fun DinamApp(
                                                 currentList.id,
                                             text = text
                                         )
+                                        todayViewModel.refreshSelectedDate()
                                     }
 
                                     showAddListItemDialog =
@@ -620,44 +793,55 @@ private fun DinamApp(
 
                 onItemClick = { item ->
 
-                    selectedItem = item
-                    editedItemTime = item.remindAt
-
-                    coroutineScope.launch {
-
-                        val selectedDate =
-                            todayViewModel.uiState.value
-                                .selectedDate
-
-                        val userId =
-                            repositories
-                                .userRepository
-                                .getCurrentUser()
-                                ?.id
-                                ?: return@launch
-
-                        val todayItems =
-                            repositories
-                                .todayRepository
-                                .getItemsForDate(
-                                    userId = userId,
-                                    periodDate = selectedDate
-                                )
-
-                        val matchingTodayItem =
-                            todayItems.firstOrNull {
-                                it.id == item.todayItemId
+                    if (item.origin == "list_item") {
+                        coroutineScope.launch {
+                            val listItem = repositories.listItemRepository
+                                .getItemsForList(item.occurrenceId)
+                                .firstOrNull { it.id == item.id }
+                            if (listItem != null) {
+                                selectedListItem = listItem
                             }
-                                ?: item.todayItemId?.let {
-                                    repositories.todayRepository.getItemById(it)
+                        }
+                    } else {
+                        selectedItem = item
+                        editedItemTime = item.remindAt
+
+                        coroutineScope.launch {
+
+                            val selectedDate =
+                                todayViewModel.uiState.value
+                                    .selectedDate
+
+                            val userId =
+                                repositories
+                                    .userRepository
+                                    .getCurrentUser()
+                                    ?.id
+                                    ?: return@launch
+
+                            val todayItems =
+                                repositories
+                                    .todayRepository
+                                    .getItemsForDate(
+                                        userId = userId,
+                                        periodDate = selectedDate
+                                    )
+
+                            val matchingTodayItem =
+                                todayItems.firstOrNull {
+                                    it.id == item.todayItemId
                                 }
+                                    ?: item.todayItemId?.let {
+                                        repositories.todayRepository.getItemById(it)
+                                    }
 
-                        selectedTodayItem =
-                            matchingTodayItem
+                            selectedTodayItem =
+                                matchingTodayItem
 
-                        everyDayEnabled =
-                            matchingTodayItem != null &&
-                                    matchingTodayItem.activeUntil == null
+                            everyDayEnabled =
+                                matchingTodayItem != null &&
+                                        matchingTodayItem.activeUntil == null
+                        }
                     }
                 }
             )
@@ -702,46 +886,61 @@ private fun DinamApp(
                     showNewList = true
                 },
 
+                onRescheduleItem = { item ->
+                    rescheduleItem = item
+                },
+
                 onItemClick = { item ->
 
-                    selectedItem = item
-                    editedItemTime = item.remindAt
-
-                    coroutineScope.launch {
-
-                        val selectedDate =
-                            todayViewModel.uiState.value
-                                .selectedDate
-
-                        val userId =
-                            repositories
-                                .userRepository
-                                .getCurrentUser()
-                                ?.id
-                                ?: return@launch
-
-                        val todayItems =
-                            repositories
-                                .todayRepository
-                                .getItemsForDate(
-                                    userId = userId,
-                                    periodDate = selectedDate
-                                )
-
-                        val matchingTodayItem =
-                            todayItems.firstOrNull {
-                                it.id == item.todayItemId
+                    if (item.origin == "list_item") {
+                        coroutineScope.launch {
+                            val listItem = repositories.listItemRepository
+                                .getItemsForList(item.occurrenceId)
+                                .firstOrNull { it.id == item.id }
+                            if (listItem != null) {
+                                selectedListItem = listItem
                             }
-                                ?: item.todayItemId?.let {
-                                    repositories.todayRepository.getItemById(it)
+                        }
+                    } else {
+                        selectedItem = item
+                        editedItemTime = item.remindAt
+
+                        coroutineScope.launch {
+
+                            val selectedDate =
+                                todayViewModel.uiState.value
+                                    .selectedDate
+
+                            val userId =
+                                repositories
+                                    .userRepository
+                                    .getCurrentUser()
+                                    ?.id
+                                    ?: return@launch
+
+                            val todayItems =
+                                repositories
+                                    .todayRepository
+                                    .getItemsForDate(
+                                        userId = userId,
+                                        periodDate = selectedDate
+                                    )
+
+                            val matchingTodayItem =
+                                todayItems.firstOrNull {
+                                    it.id == item.todayItemId
                                 }
+                                    ?: item.todayItemId?.let {
+                                        repositories.todayRepository.getItemById(it)
+                                    }
 
-                        selectedTodayItem =
-                            matchingTodayItem
+                            selectedTodayItem =
+                                matchingTodayItem
 
-                        everyDayEnabled =
-                            matchingTodayItem != null &&
-                                    matchingTodayItem.activeUntil == null
+                            everyDayEnabled =
+                                matchingTodayItem != null &&
+                                        matchingTodayItem.activeUntil == null
+                        }
                     }
                 }
             )

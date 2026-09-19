@@ -1,3 +1,5 @@
+@file:Suppress("NewApi")
+
 package com.barathiraja.dinam.ui.screens.today
 
 import androidx.compose.animation.AnimatedContent
@@ -21,10 +23,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -36,23 +40,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.barathiraja.dinam.domain.model.OccurrenceItem
+import com.barathiraja.dinam.domain.model.OverdueItem
 import com.barathiraja.dinam.data.model.TodoItem
 import com.barathiraja.dinam.domain.util.DateProvider
 import com.barathiraja.dinam.ui.components.common.ComposerChip
 import com.barathiraja.dinam.ui.components.common.DateItem
 import com.barathiraja.dinam.ui.components.common.swipeToBack
+import com.barathiraja.dinam.ui.components.home.OverdueSection
+import com.barathiraja.dinam.ui.components.home.CheckmarkBox
 import com.barathiraja.dinam.ui.components.home.TodoRow
 import com.barathiraja.dinam.ui.screens.past.PastOccurrenceScreen
 import com.barathiraja.dinam.ui.screens.time.TimePickerScreen
 import com.barathiraja.dinam.ui.theme.DinamColors
 import com.barathiraja.dinam.ui.theme.DinamDimensions
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
 
@@ -98,6 +107,10 @@ fun TodayScreen(
 
     var showTimePicker by remember {
         mutableStateOf(false)
+    }
+
+    var itemToReschedule by remember {
+        mutableStateOf<OccurrenceItem?>(null)
     }
 
     fun addCurrentItem() {
@@ -335,6 +348,15 @@ fun TodayScreen(
                         )
                     }
 
+                    if (date == today && uiState.overdueItems.isNotEmpty()) {
+                        OverdueSection(
+                            overdueItems = uiState.overdueItems,
+                            onRescheduleClick = { item ->
+                                itemToReschedule = item
+                            }
+                        )
+                    }
+
                     Spacer(
                         modifier = Modifier.height(
                             4.dp
@@ -511,6 +533,86 @@ fun TodayScreen(
                 }
             )
         }
+    }
+
+    if (itemToReschedule != null) {
+
+        AlertDialog(
+            onDismissRequest = {
+                itemToReschedule = null
+            },
+            title = {
+                Text(
+                    text = "Reschedule Task",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = DinamColors.TextTitle
+                )
+            },
+            text = {
+                Text(
+                    text = "Reschedule \"${itemToReschedule!!.text}\" to:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = DinamColors.TextPrimary
+                )
+            },
+            confirmButton = {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextButton(
+                        onClick = {
+                            val targetItem = itemToReschedule
+                            itemToReschedule = null
+                            if (targetItem != null) {
+                                todayViewModel.rescheduleOverdueItem(
+                                    overdueItem = targetItem,
+                                    targetDate = DateProvider.todayString()
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Today",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = DinamColors.Primary
+                        )
+                    }
+
+                    TextButton(
+                        onClick = {
+                            val targetItem = itemToReschedule
+                            itemToReschedule = null
+                            if (targetItem != null) {
+                                todayViewModel.rescheduleOverdueItem(
+                                    overdueItem = targetItem,
+                                    targetDate = DateProvider.today().plusDays(1).toString()
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Tomorrow",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = DinamColors.TextPrimary
+                        )
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        itemToReschedule = null
+                    }
+                ) {
+                    Text(
+                        text = "Cancel",
+                        color = DinamColors.TextSecondary
+                    )
+                }
+            }
+        )
     }
 }
 

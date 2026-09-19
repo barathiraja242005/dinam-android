@@ -10,5 +10,6 @@ data class OccurrenceItem(
     val remindAt: String?,
     val position: Int,
     val checked: Boolean,
-    val checkedAt: Long?
+    val checkedAt: Long?,
+    val snoozedUntil: Long? = null
 )

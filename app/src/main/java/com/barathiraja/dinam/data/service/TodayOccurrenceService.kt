@@ -4,7 +4,9 @@ package com.barathiraja.dinam.data.service
 
 import com.barathiraja.dinam.domain.model.Occurrence
 import com.barathiraja.dinam.domain.model.OccurrenceItem
+import com.barathiraja.dinam.domain.model.OverdueItem
 import com.barathiraja.dinam.domain.model.TodayItem
+import com.barathiraja.dinam.domain.repository.ListItemRepository
 import com.barathiraja.dinam.domain.repository.OccurrenceItemRepository
 import com.barathiraja.dinam.domain.repository.OccurrenceRepository
 import com.barathiraja.dinam.domain.repository.TodayRepository
@@ -15,6 +17,7 @@ class TodayOccurrenceService(
     private val occurrenceRepository: OccurrenceRepository,
     private val occurrenceItemRepository: OccurrenceItemRepository,
     private val todayRepository: TodayRepository,
+    private val listItemRepository: ListItemRepository,
     private val idGenerator: IdGenerator = IdGenerator.Default
 ) {
 
@@ -56,11 +59,150 @@ class TodayOccurrenceService(
     }
 
     suspend fun getOccurrenceItems(
-        occurrenceId: String
+        occurrenceId: String,
+        periodDate: String = ""
     ): List<OccurrenceItem> {
-        return occurrenceItemRepository.getItemsForOccurrence(
+        val routineItems = occurrenceItemRepository.getItemsForOccurrence(
             occurrenceId = occurrenceId
         )
+
+        if (periodDate.isEmpty()) {
+            return routineItems
+        }
+
+        val scheduledListItems = listItemRepository.getScheduledListItems(periodDate)
+        val convertedListItems = scheduledListItems.map { listItem ->
+            OccurrenceItem(
+                id = listItem.id,
+                occurrenceId = listItem.listId,
+                todayItemId = null,
+                origin = "list_item",
+                text = listItem.text,
+                canonicalId = listItem.canonicalId,
+                remindAt = listItem.remindAt,
+                position = routineItems.size + listItem.position,
+                checked = listItem.checked,
+                checkedAt = null,
+                snoozedUntil = listItem.snoozedUntil
+            )
+        }
+
+        return routineItems + convertedListItems
+    }
+
+    suspend fun getOverdueItems(
+        userId: String,
+        todayDate: String
+    ): List<OverdueItem> {
+        val overdueList = mutableListOf<OverdueItem>()
+
+        val overdueListItems = listItemRepository.getOverdueListItems(todayDate)
+        for (listItem in overdueListItems) {
+            val occurrenceItem = OccurrenceItem(
+                id = listItem.id,
+                occurrenceId = listItem.listId,
+                todayItemId = null,
+                origin = "list_item",
+                text = listItem.text,
+                canonicalId = listItem.canonicalId,
+                remindAt = listItem.remindAt,
+                position = listItem.position,
+                checked = listItem.checked,
+                checkedAt = null
+            )
+            overdueList.add(
+                OverdueItem(
+                    item = occurrenceItem,
+                    originalDate = listItem.dueDate ?: todayDate
+                )
+            )
+        }
+
+        val pastOccurrences = occurrenceRepository.getPastOccurrences(userId, todayDate)
+        for (occurrence in pastOccurrences) {
+            val items = occurrenceItemRepository.getItemsForOccurrence(occurrence.id)
+            for (item in items) {
+                if (!item.checked && isOneTimeItem(item)) {
+                    if (overdueList.none { it.item.id == item.id }) {
+                        overdueList.add(
+                            OverdueItem(
+                                item = item,
+                                originalDate = occurrence.periodDate
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        return overdueList
+    }
+
+    private suspend fun isOneTimeItem(item: OccurrenceItem): Boolean {
+        if (item.origin != "routine") {
+            return true
+        }
+        val todayItemId = item.todayItemId ?: return true
+        val todayItem = todayRepository.getItemById(todayItemId)
+        return todayItem == null || todayItem.activeUntil != null
+    }
+
+    suspend fun rescheduleOverdueItem(
+        userId: String,
+        overdueItem: OccurrenceItem,
+        targetDate: String,
+        targetTime: String? = overdueItem.remindAt,
+        remindMe: Boolean = false
+    ) {
+        if (overdueItem.origin == "list_item") {
+            val listItem = listItemRepository.getItemsForList(overdueItem.occurrenceId)
+                .firstOrNull { it.id == overdueItem.id }
+            if (listItem != null) {
+                listItemRepository.updateItem(
+                    listItem.copy(
+                        dueDate = targetDate,
+                        remindAt = targetTime,
+                        remindMe = remindMe
+                    )
+                )
+            }
+            return
+        }
+
+        occurrenceItemRepository.deleteItem(overdueItem)
+
+        val targetOccurrence = getOrCreateOccurrence(userId, targetDate)
+
+        val todayItemId = overdueItem.todayItemId
+        if (todayItemId != null) {
+            val todayItem = todayRepository.getItemById(todayItemId)
+            if (todayItem != null) {
+                todayRepository.updateItem(
+                    todayItem.copy(
+                        remindAt = targetTime,
+                        activeFrom = targetDate,
+                        activeUntil = targetDate
+                    )
+                )
+            }
+        }
+
+        val existingItems = occurrenceItemRepository.getItemsForOccurrence(targetOccurrence.id)
+
+        val newItem = OccurrenceItem(
+            id = idGenerator.generateId(),
+            occurrenceId = targetOccurrence.id,
+            todayItemId = overdueItem.todayItemId,
+            origin = overdueItem.origin,
+            text = overdueItem.text,
+            canonicalId = overdueItem.canonicalId,
+            remindAt = targetTime,
+            position = existingItems.size,
+            checked = false,
+            checkedAt = null
+        )
+
+        occurrenceItemRepository.insertItems(listOf(newItem))
     }
 
     suspend fun addTodayItem(
@@ -165,8 +307,7 @@ class TodayOccurrenceService(
 
         occurrenceItems
             .filter { occurrenceItem ->
-                occurrenceItem.origin == "routine" &&
-                        occurrenceItem.todayItemId == todayItemId
+                occurrenceItem.todayItemId == todayItemId || occurrenceItem.id == todayItemId
             }
             .forEach { occurrenceItem ->
                 occurrenceItemRepository.deleteItem(occurrenceItem)
@@ -238,7 +379,15 @@ class TodayOccurrenceService(
                 }
             )
 
-        occurrenceItemRepository.updateItem(updatedItem)
+        if (item.origin == "list_item") {
+            val listItem = listItemRepository.getItemsForList(item.occurrenceId)
+                .firstOrNull { it.id == item.id }
+            if (listItem != null) {
+                listItemRepository.updateItem(listItem.copy(checked = checked))
+            }
+        } else {
+            occurrenceItemRepository.updateItem(updatedItem)
+        }
     }
 
     private suspend fun materializeActiveRoutineItems(

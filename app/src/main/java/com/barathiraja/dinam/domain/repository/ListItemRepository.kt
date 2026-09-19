@@ -4,6 +4,8 @@ import com.barathiraja.dinam.domain.model.ListItem
 
 interface ListItemRepository {
     suspend fun getItemsForList(listId: String): List<ListItem>
+    suspend fun getOverdueListItems(todayDate: String): List<ListItem>
+    suspend fun getScheduledListItems(periodDate: String): List<ListItem>
     suspend fun insertItem(item: ListItem)
     suspend fun insertItems(items: List<ListItem>)
     suspend fun updateItem(item: ListItem)

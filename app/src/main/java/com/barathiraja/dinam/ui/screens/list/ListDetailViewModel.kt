@@ -82,6 +82,30 @@ class ListDetailViewModel(
         }
     }
 
+    fun updateItem(item: ListItem) {
+        _uiState.value = _uiState.value.copy(
+            items = _uiState.value.items.map { currentItem ->
+                if (currentItem.id == item.id) {
+                    item
+                } else {
+                    currentItem
+                }
+            }
+        )
+        viewModelScope.launch {
+            listItemRepository.updateItem(item)
+        }
+    }
+
+    fun deleteItem(item: ListItem) {
+        _uiState.value = _uiState.value.copy(
+            items = _uiState.value.items.filterNot { it.id == item.id }
+        )
+        viewModelScope.launch {
+            listItemRepository.deleteItem(item)
+        }
+    }
+
     fun addItem(
         listId: String,
         text: String

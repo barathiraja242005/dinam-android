@@ -21,6 +21,30 @@ interface ListItemDao {
         listId: String
     ): List<ListItemEntity>
 
+    @Query(
+        """
+        SELECT * FROM list_item
+        WHERE due_date IS NOT NULL
+          AND due_date < :todayDate
+          AND checked = 0
+        ORDER BY due_date DESC
+        """
+    )
+    suspend fun getOverdueListItems(
+        todayDate: String
+    ): List<ListItemEntity>
+
+    @Query(
+        """
+        SELECT * FROM list_item
+        WHERE due_date = :periodDate
+        ORDER BY position ASC
+        """
+    )
+    suspend fun getScheduledListItems(
+        periodDate: String
+    ): List<ListItemEntity>
+
     @Insert
     suspend fun insert(
         item: ListItemEntity

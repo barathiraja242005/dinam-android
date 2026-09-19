@@ -15,7 +15,7 @@ object DinamDatabaseProvider {
                 context.applicationContext,
                 DinamDatabase::class.java,
                 "dinam.db"
-            ).build().also {
+            ).fallbackToDestructiveMigration(true).build().also {
                 instance = it
             }
         }

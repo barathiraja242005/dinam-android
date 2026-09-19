@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.barathiraja.dinam.data.service.TodayOccurrenceService
 import com.barathiraja.dinam.data.session.UserSession
 import com.barathiraja.dinam.domain.model.OccurrenceItem
+import com.barathiraja.dinam.domain.model.OverdueItem
 import com.barathiraja.dinam.domain.model.TodayItem
 import com.barathiraja.dinam.domain.util.Canonicalizer
 import com.barathiraja.dinam.domain.util.DateProvider
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
 data class TodayUiState(
     val selectedDate: String = currentLocalDate(),
     val items: List<OccurrenceItem> = emptyList(),
+    val overdueItems: List<OverdueItem> = emptyList(),
     val isLoading: Boolean = true
 )
 
@@ -66,6 +68,7 @@ class TodayViewModel(
             _uiState.value = TodayUiState(
                 selectedDate = periodDate,
                 items = emptyList(),
+                overdueItems = emptyList(),
                 isLoading = true
             )
 
@@ -79,12 +82,24 @@ class TodayViewModel(
 
             val items =
                 todayOccurrenceService.getOccurrenceItems(
-                    occurrenceId = occurrence.id
+                    occurrenceId = occurrence.id,
+                    periodDate = periodDate
                 )
+
+            val overdueItems =
+                if (periodDate == currentLocalDate()) {
+                    todayOccurrenceService.getOverdueItems(
+                        userId = user.id,
+                        todayDate = currentLocalDate()
+                    )
+                } else {
+                    emptyList()
+                }
 
             _uiState.value = TodayUiState(
                 selectedDate = periodDate,
                 items = items,
+                overdueItems = overdueItems,
                 isLoading = false
             )
         }
@@ -163,8 +178,30 @@ class TodayViewModel(
                     } else {
                         currentItem
                     }
+                },
+                overdueItems = _uiState.value.overdueItems.filterNot {
+                    it.item.id == item.id
                 }
             )
+        }
+    }
+
+    fun rescheduleOverdueItem(
+        overdueItem: OccurrenceItem,
+        targetDate: String = currentLocalDate(),
+        targetTime: String? = overdueItem.remindAt,
+        remindMe: Boolean = false
+    ) {
+        viewModelScope.launch {
+            val user = userSession.getCurrentUser()
+            todayOccurrenceService.rescheduleOverdueItem(
+                userId = user.id,
+                overdueItem = overdueItem,
+                targetDate = targetDate,
+                targetTime = targetTime,
+                remindMe = remindMe
+            )
+            refreshSelectedDate()
         }
     }
 

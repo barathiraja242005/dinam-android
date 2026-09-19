@@ -19,5 +19,17 @@ data class ListItemEntity(
 
     val position: Int,
 
-    val checked: Boolean
+    val checked: Boolean,
+
+    @ColumnInfo(name = "due_date")
+    val dueDate: String? = null,
+
+    @ColumnInfo(name = "remind_at")
+    val remindAt: String? = null,
+
+    @ColumnInfo(name = "remind_me")
+    val remindMe: Boolean = false,
+
+    @ColumnInfo(name = "snoozed_until")
+    val snoozedUntil: Long? = null
 )

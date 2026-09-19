@@ -6,5 +6,9 @@ data class ListItem(
     val text: String,
     val canonicalId: String,
     val position: Int,
-    val checked: Boolean
+    val checked: Boolean,
+    val dueDate: String? = null,
+    val remindAt: String? = null,
+    val remindMe: Boolean = false,
+    val snoozedUntil: Long? = null
 )
