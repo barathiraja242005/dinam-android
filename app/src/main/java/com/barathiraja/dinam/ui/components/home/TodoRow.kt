@@ -57,20 +57,19 @@ fun TodoRow(
         },
         onSwipeRight = onSwipeRight
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = !isEditing) {
-                    onItemClick()
-                }
-        ) {
+        Column {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = DinamDimensions.itemRowHeight)
+                    .clickable(enabled = !isEditing) {
+                        onItemClick()
+                    }
                     .padding(
-                        horizontal = DinamDimensions.screenHorizontal,
-                        vertical = 12.dp
+                        start = 10.dp,
+                        end = DinamDimensions.screenHorizontal,
+                        top = 10.dp,
+                        bottom = 10.dp
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {

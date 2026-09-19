@@ -293,8 +293,10 @@ class TodayOccurrenceService(
     }
 
     suspend fun renameItem(
+        userId: String = "",
         item: OccurrenceItem,
-        newText: String
+        newText: String,
+        currentDate: String = ""
     ) {
         val trimmedText = newText.trim()
         if (trimmedText.isEmpty()) return
@@ -328,6 +330,26 @@ class TodayOccurrenceService(
                             canonicalId = newCanonicalId
                         )
                     )
+                }
+
+                if (userId.isNotEmpty() && currentDate.isNotEmpty()) {
+                    val occurrences = occurrenceRepository.getOccurrencesFromDate(
+                        userId = userId,
+                        fromDate = currentDate
+                    )
+                    occurrences.forEach { occurrence ->
+                        val occurrenceItems = occurrenceItemRepository.getItemsForOccurrence(occurrence.id)
+                        occurrenceItems
+                            .filter { it.todayItemId == todayItemId }
+                            .forEach { futureItem ->
+                                occurrenceItemRepository.updateItem(
+                                    futureItem.copy(
+                                        text = trimmedText,
+                                        canonicalId = newCanonicalId
+                                    )
+                                )
+                            }
+                    }
                 }
             }
         }
