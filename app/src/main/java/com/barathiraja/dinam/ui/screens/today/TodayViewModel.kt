@@ -7,6 +7,7 @@ import com.barathiraja.dinam.data.session.UserSession
 import com.barathiraja.dinam.domain.model.OccurrenceItem
 import com.barathiraja.dinam.domain.model.OverdueItem
 import com.barathiraja.dinam.domain.model.TodayItem
+import com.barathiraja.dinam.domain.usecase.occurrence.GenerateOccurrenceUseCase
 import com.barathiraja.dinam.domain.usecase.occurrence.GetOccurrenceUseCase
 import com.barathiraja.dinam.domain.usecase.occurrence.RescheduleOverdueItemUseCase
 import com.barathiraja.dinam.domain.usecase.today.AddTodayItemUseCase
@@ -32,6 +33,7 @@ data class TodayUiState(
 
 class TodayViewModel(
     private val getOccurrenceUseCase: GetOccurrenceUseCase,
+    private val generateOccurrenceUseCase: GenerateOccurrenceUseCase,
     private val addTodayItemUseCase: AddTodayItemUseCase,
     private val renameTodayItemUseCase: RenameTodayItemUseCase,
     private val updateTodayItemTimeUseCase: UpdateTodayItemTimeUseCase,
@@ -88,9 +90,15 @@ class TodayViewModel(
 
             val user = userSession.getCurrentUser()
 
+            val occurrence =
+                generateOccurrenceUseCase(
+                    userId = user.id,
+                    periodDate = periodDate
+                )
+
             val items =
                 getOccurrenceUseCase.getOccurrenceItems(
-                    occurrenceId = user.id,
+                    occurrenceId = occurrence.id,
                     periodDate = periodDate
                 )
 
@@ -300,6 +308,7 @@ private fun currentLocalDate(): String {
 
 class TodayViewModelFactory(
     private val getOccurrenceUseCase: GetOccurrenceUseCase,
+    private val generateOccurrenceUseCase: GenerateOccurrenceUseCase,
     private val addTodayItemUseCase: AddTodayItemUseCase,
     private val renameTodayItemUseCase: RenameTodayItemUseCase,
     private val updateTodayItemTimeUseCase: UpdateTodayItemTimeUseCase,
@@ -323,6 +332,7 @@ class TodayViewModelFactory(
 
             return TodayViewModel(
                 getOccurrenceUseCase = getOccurrenceUseCase,
+                generateOccurrenceUseCase = generateOccurrenceUseCase,
                 addTodayItemUseCase = addTodayItemUseCase,
                 renameTodayItemUseCase = renameTodayItemUseCase,
                 updateTodayItemTimeUseCase = updateTodayItemTimeUseCase,

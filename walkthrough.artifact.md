@@ -1,19 +1,20 @@
-# Walkthrough: Phase 3 — Jetpack Navigation Compose Integration
+# Walkthrough: Bug Fix — Add Item Screen Reload & Occurrence ID Parameter
 
-Integrated Jetpack Navigation Compose (`NavHostController`) and simplified `MainActivity.kt` into a thin application host.
+Resolved the issue where newly added items on Home and Today screens did not appear on screen due to an occurrence ID parameter mismatch during list reloads.
 
 ---
 
-## Key Changes Implemented in Phase 3
+## Root Cause & Solution
 
-### 1. Centralized Typed Navigation Routes ([`NavRoutes.kt`](file:///Users/barathiraja/AndroidStudioProjects/Dinam/app/src/main/java/com/barathiraja/dinam/app/navigation/NavRoutes.kt))
-- Defined sealed class `NavRoutes` for all destinations (`Home`, `Today`, `ListDetail`, `NewList`, `Reschedule`, `ItemDetail`, `ListItemDetail`).
+### 1. Root Cause
+- **Occurrence ID Parameter Mismatch:** In `TodayViewModel.kt`, `loadItemsForDate` previously bypassed `generateOccurrenceUseCase` and passed `occurrenceId = user.id` to `getOccurrenceItems`.
+- **Query Failure:** `occurrenceItemDao.getByOccurrenceId` queried Room table `occurrence_item` for `occurrence_id == user.id` (User UUID) instead of `occurrence_id == occurrence.id` (Occurrence UUID).
+- **Impact:** Newly inserted occurrence items (saved with `occurrence_id = occurrence.id`) were never retrieved during list reload, leaving the screen task list empty.
 
-### 2. App Navigation Graph ([`AppNavigation.kt`](file:///Users/barathiraja/AndroidStudioProjects/Dinam/app/src/main/java/com/barathiraja/dinam/app/navigation/AppNavigation.kt))
-- Created `NavHost` handling destination routing, arguments, and backstack transitions via `NavHostController`.
-
-### 3. Ultra-Thin `MainActivity.kt` ([`MainActivity.kt`](file:///Users/barathiraja/AndroidStudioProjects/Dinam/app/src/main/java/com/barathiraja/dinam/MainActivity.kt))
-- Reduced `MainActivity.kt` from ~1000 lines down to ~70 lines of clean Activity hosting code (`DinamTheme { AppNavigation(...) }`).
+### 2. Fix Implemented ([`TodayViewModel.kt`](file:///Users/barathiraja/AndroidStudioProjects/Dinam/app/src/main/java/com/barathiraja/dinam/ui/screens/today/TodayViewModel.kt) & [`MainActivity.kt`](file:///Users/barathiraja/AndroidStudioProjects/Dinam/app/src/main/java/com/barathiraja/dinam/MainActivity.kt))
+- Updated `TodayViewModel.kt` to invoke `generateOccurrenceUseCase(userId = user.id, periodDate = periodDate)` first.
+- Passed `occurrence.id` to `getOccurrenceItems(occurrenceId = occurrence.id, periodDate = periodDate)`.
+- Updated `TodayViewModelFactory` and `MainActivity.kt` to supply `generateOccurrenceUseCase`.
 
 ---
 

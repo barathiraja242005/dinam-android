@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
             this,
             TodayViewModelFactory(
                 getOccurrenceUseCase = repositories.getOccurrenceUseCase,
+                generateOccurrenceUseCase = repositories.generateOccurrenceUseCase,
                 addTodayItemUseCase = repositories.addTodayItemUseCase,
                 renameTodayItemUseCase = repositories.renameTodayItemUseCase,
                 updateTodayItemTimeUseCase = repositories.updateTodayItemTimeUseCase,
