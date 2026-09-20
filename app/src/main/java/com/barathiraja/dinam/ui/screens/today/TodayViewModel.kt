@@ -3,11 +3,18 @@ package com.barathiraja.dinam.ui.screens.today
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.barathiraja.dinam.data.service.TodayOccurrenceService
 import com.barathiraja.dinam.data.session.UserSession
 import com.barathiraja.dinam.domain.model.OccurrenceItem
 import com.barathiraja.dinam.domain.model.OverdueItem
 import com.barathiraja.dinam.domain.model.TodayItem
+import com.barathiraja.dinam.domain.usecase.occurrence.GetOccurrenceUseCase
+import com.barathiraja.dinam.domain.usecase.occurrence.RescheduleOverdueItemUseCase
+import com.barathiraja.dinam.domain.usecase.today.AddTodayItemUseCase
+import com.barathiraja.dinam.domain.usecase.today.DeleteTodayItemUseCase
+import com.barathiraja.dinam.domain.usecase.today.RenameTodayItemUseCase
+import com.barathiraja.dinam.domain.usecase.today.SetTodayItemCheckedUseCase
+import com.barathiraja.dinam.domain.usecase.today.SetTodayItemEverydayUseCase
+import com.barathiraja.dinam.domain.usecase.today.UpdateTodayItemTimeUseCase
 import com.barathiraja.dinam.domain.util.Canonicalizer
 import com.barathiraja.dinam.domain.util.DateProvider
 import com.barathiraja.dinam.domain.util.IdGenerator
@@ -24,7 +31,14 @@ data class TodayUiState(
 )
 
 class TodayViewModel(
-    private val todayOccurrenceService: TodayOccurrenceService,
+    private val getOccurrenceUseCase: GetOccurrenceUseCase,
+    private val addTodayItemUseCase: AddTodayItemUseCase,
+    private val renameTodayItemUseCase: RenameTodayItemUseCase,
+    private val updateTodayItemTimeUseCase: UpdateTodayItemTimeUseCase,
+    private val setTodayItemCheckedUseCase: SetTodayItemCheckedUseCase,
+    private val deleteTodayItemUseCase: DeleteTodayItemUseCase,
+    private val setTodayItemEverydayUseCase: SetTodayItemEverydayUseCase,
+    private val rescheduleOverdueItemUseCase: RescheduleOverdueItemUseCase,
     private val userSession: UserSession,
     private val idGenerator: IdGenerator = IdGenerator.Default
 ) : ViewModel() {
@@ -74,21 +88,15 @@ class TodayViewModel(
 
             val user = userSession.getCurrentUser()
 
-            val occurrence =
-                todayOccurrenceService.getOrCreateOccurrence(
-                    userId = user.id,
-                    periodDate = periodDate
-                )
-
             val items =
-                todayOccurrenceService.getOccurrenceItems(
-                    occurrenceId = occurrence.id,
+                getOccurrenceUseCase.getOccurrenceItems(
+                    occurrenceId = user.id,
                     periodDate = periodDate
                 )
 
             val overdueItems =
                 if (periodDate == currentLocalDate()) {
-                    todayOccurrenceService.getOverdueItems(
+                    getOccurrenceUseCase.getOverdueItems(
                         userId = user.id,
                         todayDate = currentLocalDate()
                     )
@@ -139,7 +147,7 @@ class TodayViewModel(
                 activeUntil = if (everyday) null else periodDate
             )
 
-            todayOccurrenceService.addTodayItem(
+            addTodayItemUseCase(
                 userId = user.id,
                 periodDate = periodDate,
                 item = item
@@ -157,7 +165,7 @@ class TodayViewModel(
     ) {
         viewModelScope.launch {
 
-            todayOccurrenceService.setOccurrenceItemChecked(
+            setTodayItemCheckedUseCase(
                 item = item,
                 checked = checked
             )
@@ -186,6 +194,79 @@ class TodayViewModel(
         }
     }
 
+    fun renameItem(
+        item: OccurrenceItem,
+        newText: String
+    ) {
+        viewModelScope.launch {
+            val user = userSession.getCurrentUser()
+            renameTodayItemUseCase(
+                userId = user.id,
+                item = item,
+                newText = newText,
+                currentDate = _uiState.value.selectedDate
+            )
+            refreshSelectedDate()
+        }
+    }
+
+    fun updateItemTime(
+        item: OccurrenceItem,
+        newTime: String?
+    ) {
+        viewModelScope.launch {
+            updateTodayItemTimeUseCase(
+                item = item,
+                newTime = newTime
+            )
+            refreshSelectedDate()
+        }
+    }
+
+    fun deleteJustToday(
+        item: OccurrenceItem
+    ) {
+        viewModelScope.launch {
+            val user = userSession.getCurrentUser()
+            deleteTodayItemUseCase.removeJustToday(
+                userId = user.id,
+                todayItemId = item.todayItemId ?: item.id,
+                periodDate = _uiState.value.selectedDate
+            )
+            refreshSelectedDate()
+        }
+    }
+
+    fun deleteTodayAndFuture(
+        item: OccurrenceItem
+    ) {
+        viewModelScope.launch {
+            val user = userSession.getCurrentUser()
+            deleteTodayItemUseCase.removeTodayAndFuture(
+                userId = user.id,
+                todayItemId = item.todayItemId ?: item.id,
+                periodDate = _uiState.value.selectedDate
+            )
+            refreshSelectedDate()
+        }
+    }
+
+    fun setEveryday(
+        item: TodayItem,
+        enabled: Boolean
+    ) {
+        viewModelScope.launch {
+            val user = userSession.getCurrentUser()
+            setTodayItemEverydayUseCase(
+                userId = user.id,
+                item = item,
+                enabled = enabled,
+                periodDate = _uiState.value.selectedDate
+            )
+            refreshSelectedDate()
+        }
+    }
+
     fun rescheduleOverdueItem(
         overdueItem: OccurrenceItem,
         targetDate: String = currentLocalDate(),
@@ -194,7 +275,7 @@ class TodayViewModel(
     ) {
         viewModelScope.launch {
             val user = userSession.getCurrentUser()
-            todayOccurrenceService.rescheduleOverdueItem(
+            rescheduleOverdueItemUseCase(
                 userId = user.id,
                 overdueItem = overdueItem,
                 targetDate = targetDate,
@@ -218,7 +299,14 @@ private fun currentLocalDate(): String {
 }
 
 class TodayViewModelFactory(
-    private val todayOccurrenceService: TodayOccurrenceService,
+    private val getOccurrenceUseCase: GetOccurrenceUseCase,
+    private val addTodayItemUseCase: AddTodayItemUseCase,
+    private val renameTodayItemUseCase: RenameTodayItemUseCase,
+    private val updateTodayItemTimeUseCase: UpdateTodayItemTimeUseCase,
+    private val setTodayItemCheckedUseCase: SetTodayItemCheckedUseCase,
+    private val deleteTodayItemUseCase: DeleteTodayItemUseCase,
+    private val setTodayItemEverydayUseCase: SetTodayItemEverydayUseCase,
+    private val rescheduleOverdueItemUseCase: RescheduleOverdueItemUseCase,
     private val userSession: UserSession
 ) : ViewModelProvider.Factory {
 
@@ -234,10 +322,15 @@ class TodayViewModelFactory(
         ) {
 
             return TodayViewModel(
-                todayOccurrenceService =
-                    todayOccurrenceService,
-                userSession =
-                    userSession
+                getOccurrenceUseCase = getOccurrenceUseCase,
+                addTodayItemUseCase = addTodayItemUseCase,
+                renameTodayItemUseCase = renameTodayItemUseCase,
+                updateTodayItemTimeUseCase = updateTodayItemTimeUseCase,
+                setTodayItemCheckedUseCase = setTodayItemCheckedUseCase,
+                deleteTodayItemUseCase = deleteTodayItemUseCase,
+                setTodayItemEverydayUseCase = setTodayItemEverydayUseCase,
+                rescheduleOverdueItemUseCase = rescheduleOverdueItemUseCase,
+                userSession = userSession
             ) as T
         }
 

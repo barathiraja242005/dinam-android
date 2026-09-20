@@ -1,7 +1,7 @@
 package com.barathiraja.dinam.data.repository
 
 import com.barathiraja.dinam.data.local.dao.OccurrenceDao
-import com.barathiraja.dinam.data.local.entity.OccurrenceEntity
+import com.barathiraja.dinam.data.local.mapper.OccurrenceMapper
 import com.barathiraja.dinam.domain.model.Occurrence
 import com.barathiraja.dinam.domain.repository.OccurrenceRepository
 
@@ -10,44 +10,26 @@ class OccurrenceRepositoryImpl(
 ) : OccurrenceRepository {
 
     override suspend fun getByPeriodDate(userId: String, periodDate: String): Occurrence? {
-        return occurrenceDao.getByDate(userId, periodDate)?.toDomain()
+        return occurrenceDao.getByDate(userId, periodDate)?.let { OccurrenceMapper.toDomain(it) }
     }
 
     override suspend fun getOccurrencesFromDate(userId: String, fromDate: String): List<Occurrence> {
-        return occurrenceDao.getFromDate(userId, fromDate).map { it.toDomain() }
+        return occurrenceDao.getFromDate(userId, fromDate).map { OccurrenceMapper.toDomain(it) }
     }
 
     override suspend fun getPastOccurrences(userId: String, todayDate: String): List<Occurrence> {
-        return occurrenceDao.getPastOccurrences(userId, todayDate).map { it.toDomain() }
+        return occurrenceDao.getPastOccurrences(userId, todayDate).map { OccurrenceMapper.toDomain(it) }
     }
 
     override suspend fun getById(id: String): Occurrence? {
-        return occurrenceDao.getById(id)?.toDomain()
+        return occurrenceDao.getById(id)?.let { OccurrenceMapper.toDomain(it) }
     }
 
     override suspend fun insert(occurrence: Occurrence) {
-        occurrenceDao.insert(occurrence.toEntity())
+        occurrenceDao.insert(OccurrenceMapper.toEntity(occurrence))
     }
 
     override suspend fun delete(occurrence: Occurrence) {
-        occurrenceDao.delete(occurrence.toEntity())
-    }
-
-    private fun OccurrenceEntity.toDomain(): Occurrence {
-        return Occurrence(
-            id = id,
-            userId = userId,
-            periodDate = periodDate,
-            createdAt = createdAt
-        )
-    }
-
-    private fun Occurrence.toEntity(): OccurrenceEntity {
-        return OccurrenceEntity(
-            id = id,
-            userId = userId,
-            periodDate = periodDate,
-            createdAt = createdAt
-        )
+        occurrenceDao.delete(OccurrenceMapper.toEntity(occurrence))
     }
 }

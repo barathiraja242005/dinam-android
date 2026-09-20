@@ -5,6 +5,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.barathiraja.dinam.domain.model.ListItem
 import com.barathiraja.dinam.domain.repository.ListItemRepository
+import com.barathiraja.dinam.domain.usecase.list.AddListItemUseCase
+import com.barathiraja.dinam.domain.usecase.list.DeleteListItemUseCase
+import com.barathiraja.dinam.domain.usecase.list.RenameListItemUseCase
+import com.barathiraja.dinam.domain.usecase.list.SetListItemCheckedUseCase
 import com.barathiraja.dinam.domain.util.Canonicalizer
 import com.barathiraja.dinam.domain.util.IdGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +23,10 @@ data class ListDetailUiState(
 
 class ListDetailViewModel(
     private val listItemRepository: ListItemRepository,
+    private val addListItemUseCase: AddListItemUseCase,
+    private val renameListItemUseCase: RenameListItemUseCase,
+    private val deleteListItemUseCase: DeleteListItemUseCase,
+    private val setListItemCheckedUseCase: SetListItemCheckedUseCase,
     private val idGenerator: IdGenerator = IdGenerator.Default
 ) : ViewModel() {
 
@@ -75,9 +83,9 @@ class ListDetailViewModel(
             )
 
         viewModelScope.launch {
-
-            listItemRepository.updateItem(
-                updatedItem
+            setListItemCheckedUseCase(
+                item = item,
+                checked = checked
             )
         }
     }
@@ -93,7 +101,11 @@ class ListDetailViewModel(
             }
         )
         viewModelScope.launch {
-            listItemRepository.updateItem(item)
+            renameListItemUseCase(
+                item = item,
+                newText = item.text,
+                canonicalId = item.canonicalId
+            )
         }
     }
 
@@ -102,7 +114,7 @@ class ListDetailViewModel(
             items = _uiState.value.items.filterNot { it.id == item.id }
         )
         viewModelScope.launch {
-            listItemRepository.deleteItem(item)
+            deleteListItemUseCase(item)
         }
     }
 
@@ -136,7 +148,7 @@ class ListDetailViewModel(
                     checked = false
                 )
 
-            listItemRepository.insertItem(
+            addListItemUseCase(
                 item
             )
 
@@ -150,7 +162,11 @@ class ListDetailViewModel(
 }
 
 class ListDetailViewModelFactory(
-    private val listItemRepository: ListItemRepository
+    private val listItemRepository: ListItemRepository,
+    private val addListItemUseCase: AddListItemUseCase,
+    private val renameListItemUseCase: RenameListItemUseCase,
+    private val deleteListItemUseCase: DeleteListItemUseCase,
+    private val setListItemCheckedUseCase: SetListItemCheckedUseCase
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -165,8 +181,11 @@ class ListDetailViewModelFactory(
         ) {
 
             return ListDetailViewModel(
-                listItemRepository =
-                    listItemRepository
+                listItemRepository = listItemRepository,
+                addListItemUseCase = addListItemUseCase,
+                renameListItemUseCase = renameListItemUseCase,
+                deleteListItemUseCase = deleteListItemUseCase,
+                setListItemCheckedUseCase = setListItemCheckedUseCase
             ) as T
         }
 
